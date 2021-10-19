@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="bitrate_keys">
+        <item>Let the server decide</item>
+        <item>64</item>
+        <item>128</item>
+        <item>192</item>
+        <item>256</item>
+        <item>320</item>
+        <item>384</item>
+    </string-array>
+    <string-array name="bitrate_values">
+        <item>@string/bitrate_default</item>
+        <item>64</item>
+        <item>128</item>
+        <item>192</item>
+        <item>256</item>
+        <item>320</item>
+        <item>384</item>
+    </string-array>
+    <string-array name="format_keys">
+        <item>Let the server decide</item>
+        <item>FLAC</item>
+        <item>OGG</item>
+        <item>OPUS</item>
+        <item>MP3</item>
+        <item>RAW</item>
+    </string-array>
+    <string-array name="format_values">
+        <item>@string/format_default</item>
+        <item>flac</item>
+        <item>ogg</item>
+        <item>opus</item>
+        <item>mp3</item>
+        <item>raw</item>
+    </string-array>
+</resources>

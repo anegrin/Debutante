@@ -1,0 +1,28 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/mi_cast"
+        android:title="@string/mi_cast"
+        app:actionProviderClass="androidx.mediarouter.app.MediaRouteActionProvider"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/mi_play"
+        android:icon="@drawable/ic_play"
+        android:title="@string/mi_play"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/mi_playlist"
+        android:icon="@drawable/ic_playlist"
+        android:title="@string/mi_playlist"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/mi_settings"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/mi_settings"
+        app:showAsAction="ifRoom" />
+
+</menu>

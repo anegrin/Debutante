@@ -1,0 +1,137 @@
+plugins {
+    id 'com.android.application'
+    id 'com.jaredsburrows.license'
+}
+
+def properties = new Properties()
+properties.load(project.rootProject.file("local.properties").newDataInputStream())
+def acraEmail = properties.getOrDefault("acra.email", "none@none.none")
+
+android {
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "io.github.debutante"
+        minSdk 28
+        targetSdk 34
+        versionCode 1_00_00
+        versionName "1.0.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            buildConfigField "Boolean", "L_D", "true"
+            buildConfigField "String", "ACRA_EMAIL", "\"${acraEmail}\""
+        }
+        release {
+            buildConfigField "Boolean", "L_D", "false"
+            buildConfigField "String", "ACRA_EMAIL", '""'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+    }
+    buildFeatures {
+        viewBinding true
+    }
+    namespace 'io.github.debutante'
+}
+
+licenseReport {
+    generateCsvReport = false
+    generateHtmlReport = false
+    generateJsonReport = true
+    copyHtmlReportToAssets = false
+    copyHtmlReportToAssets = false
+    copyJsonReportToAssets = true
+        ignoredPatterns = ["org.apache.commons", "commons-io"]
+}
+
+tasks.preBuild.doFirst { tasks.licenseReleaseReport.licenseReport() }
+
+tasks.withType(JavaCompile) {
+    options.deprecation = true
+}
+
+def kotlin_version = "1.8.22"
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        def requested = details.requested
+        if (requested.group == 'org.jetbrains.kotlin') {
+            if (requested.name == 'kotlin-stdlib'
+                    || requested.name == 'kotlin-stdlib-jdk7'
+                    || requested.name == 'kotlin-stdlib-jdk8'
+                    || requested.name == 'kotlin-stdlib-common') {
+                details.useVersion kotlin_version
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation "io.github.l4digital:fastscroll:2.0.1"
+    implementation 'com.apachat:swipereveallayout-android:1.1.2'
+    implementation 'org.nanohttpd:nanohttpd:2.3.1'
+    implementation "com.squareup.picasso:picasso:2.8"
+
+    def acra_version = '5.8.4'
+    debugImplementation "ch.acra:acra-mail:$acra_version"
+    debugImplementation "ch.acra:acra-dialog:$acra_version"
+    releaseCompileOnly "ch.acra:acra-mail:$acra_version"
+    releaseCompileOnly "ch.acra:acra-dialog:$acra_version"
+
+    def exo_version = "2.19.1"
+    implementation "com.google.android.exoplayer:exoplayer-core:$exo_version"
+    implementation "com.google.android.exoplayer:exoplayer-ui:$exo_version"
+    implementation "com.google.android.exoplayer:extension-cast:$exo_version"
+    implementation "com.google.android.exoplayer:extension-mediasession:$exo_version"
+    implementation "com.google.android.exoplayer:extension-okhttp:$exo_version"
+    debugImplementation files("libs/exoplayer-extension-flac-debug.aar")
+    debugImplementation files("libs/exoplayer-extension-opus-debug.aar")
+    releaseImplementation files("libs/exoplayer-extension-flac-release.aar")
+    releaseImplementation files("libs/exoplayer-extension-opus-release.aar")
+
+    def room_version = "2.6.1"
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+    implementation "androidx.room:room-rxjava3:$room_version"
+    testImplementation "androidx.room:room-testing:$room_version"
+
+    def nav_version = "2.8.9"
+    implementation "androidx.navigation:navigation-fragment:$nav_version"
+    implementation "androidx.navigation:navigation-ui:$nav_version"
+    androidTestImplementation "androidx.navigation:navigation-testing:$nav_version"
+
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.preference:preference:1.2.1'
+    implementation 'androidx.media:media:1.7.0'
+    implementation 'androidx.mediarouter:mediarouter:1.7.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.annotation:annotation:1.9.1'
+
+    implementation 'commons-io:commons-io:2.15.1'
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
+    implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
+    implementation 'io.reactivex.rxjava3:rxjava:3.1.3'
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    implementation 'com.google.android.gms:play-services-cast-framework:22.0.0'
+    implementation 'com.google.android.material:material:1.12.0'
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+}

@@ -1,0 +1,7 @@
+<resources>
+    <color name="drawable_fg">?attr/colorPrimary</color>
+    <color name="drawable_bg">?attr/colorPrimaryInverse</color>
+    <color name="launcher_bg">#eba255</color>
+    <color name="launcher_fg">#063970</color>
+    <color name="notification_fg">#000000</color>
+</resources>
