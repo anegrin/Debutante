@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="song_cache_mb_default">1024</integer>
+    <integer name="song_cache_mb_max">4096</integer>
+    <integer name="song_cache_mb_min">128</integer>
+    <integer name="song_cache_mb_inc">64</integer>
+    <integer name="cover_art_cache_mb_default">32</integer>
+    <integer name="cover_art_cache_mb_max">64</integer>
+    <integer name="cover_art_cache_mb_min">8</integer>
+    <integer name="cover_art_cache_mb_inc">8</integer>
+    <integer name="accounts_sync_interval_hours_default">6</integer>
+    <integer name="accounts_sync_interval_hours_max">48</integer>
+    <integer name="accounts_sync_interval_hours_min">1</integer>
+    <integer name="accounts_sync_interval_hours_inc">1</integer>
+    <integer name="song_preload_default">2</integer>
+    <integer name="song_preload_max">10</integer>
+    <integer name="song_preload_min">0</integer>
+    <integer name="song_preload_inc">1</integer>
+    <integer name="streaming_timeout_secs">15</integer>
+    <integer name="streaming_timeout_seconds_secs_max">60</integer>
+    <integer name="streaming_timeout_seconds_secs_min">5</integer>
+    <integer name="streaming_timeout_secs_inc">5</integer>
+</resources>

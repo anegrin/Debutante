@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/player_nav_graph"
+    app:startDestination="@id/f_playerino">
+    <fragment
+        android:id="@+id/f_playerino"
+        android:name="io.github.debutante.PlayerinoFragment"
+        android:label="PlayerinoFragment">
+        <action
+            android:id="@+id/action_f_playerino_to_f_player"
+            app:destination="@id/f_player" />
+    </fragment>
+    <fragment
+        android:id="@+id/f_player"
+        android:name="io.github.debutante.PlayerFragment"
+        android:label="PlayerFragment">
+        <action
+            android:id="@+id/action_f_player_to_f_playlist"
+            app:destination="@id/f_playlist" />
+    </fragment>
+    <fragment
+        android:id="@+id/f_playlist"
+        android:name="io.github.debutante.PlaylistFragment"
+        android:label="PlaylistFragment" />
+</navigation>

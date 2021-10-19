@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory android:title="@string/p_ux">
+        <SwitchPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_local"
+            android:key="accounts_local_enabled"
+            android:summary="@string/p_accounts_local_enabled_summary"
+            android:title="@string/p_accounts_local_enabled"
+            app:updatesContinuously="true" />
+        <SwitchPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_playlist"
+            android:key="playlists_enabled"
+            android:summary="@string/p_playlists_enabled_summary"
+            android:title="@string/p_playlists_enabled"
+            app:updatesContinuously="true" />
+        <SwitchPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_artist"
+            android:key="artist_pic_local_enabled"
+            android:summary="@string/p_artist_pic_enabled_summary"
+            android:title="@string/p_artist_pic_enabled"
+            app:updatesContinuously="true" />
+        <SwitchPreference
+            android:defaultValue="false"
+            android:icon="@drawable/ic_bt_audio"
+            android:key="autoplay_on_bt_enabled"
+            android:summary="@string/p_autoplay_on_bt_enabled_summary"
+            android:title="@string/p_autoplay_on_bt_enabled"
+            app:updatesContinuously="true" />
+        <SwitchPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_noisy_audio"
+            android:key="handle_audio_becoming_noisy"
+            android:summary="@string/p_handle_noisy_audio_enabled_summary"
+            android:title="@string/p_handle_noisy_audio_enabled"
+            app:updatesContinuously="true" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/p_caches">
+        <SwitchPreference
+            android:defaultValue="false"
+            android:icon="@drawable/ic_wifi"
+            android:key="song_preload_wifi"
+            android:summary="@string/p_song_preload_wifi_summary"
+            android:title="@string/p_song_preload_wifi"
+            app:updatesContinuously="true" />
+        <SeekBarPreference
+            android:defaultValue="@integer/song_preload_default"
+            android:icon="@drawable/ic_download"
+            android:key="song_preload"
+            android:max="@integer/song_preload_max"
+            android:title="@string/p_song_preload"
+            app:min="@integer/song_preload_min"
+            app:seekBarIncrement="@integer/song_preload_inc"
+            app:showSeekBarValue="true"
+            app:updatesContinuously="false" />
+        <SeekBarPreference
+            android:defaultValue="@integer/song_cache_mb_default"
+            android:icon="@drawable/ic_storage"
+            android:key="song_cache_mb"
+            android:max="@integer/song_cache_mb_max"
+            android:title="@string/p_song_cache"
+            app:min="@integer/song_cache_mb_min"
+            app:seekBarIncrement="@integer/song_cache_mb_inc"
+            app:showSeekBarValue="true"
+            app:updatesContinuously="false" />
+        <SeekBarPreference
+            android:defaultValue="@integer/cover_art_cache_mb_default"
+            android:icon="@drawable/ic_storage"
+            android:key="cover_art_cache_mb"
+            android:max="@integer/cover_art_cache_mb_max"
+            android:title="@string/p_cover_art_cache"
+            app:min="@integer/cover_art_cache_mb_min"
+            app:seekBarIncrement="@integer/cover_art_cache_mb_inc"
+            app:showSeekBarValue="true"
+            app:updatesContinuously="false" />
+        <Preference
+            android:icon="@drawable/ic_delete"
+            android:key="clear_caches"
+            android:title="@string/p_clear_caches" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/p_accounts">
+        <SwitchPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_refresh"
+            android:key="accounts_sync_enabled"
+            android:summary="@string/p_accounts_sync_enabled_summary"
+            android:title="@string/p_accounts_sync_enabled"
+            app:updatesContinuously="true" />
+        <SeekBarPreference
+            android:defaultValue="@integer/accounts_sync_interval_hours_default"
+            android:dependency="accounts_sync_enabled"
+            android:icon="@drawable/ic_clock"
+            android:key="accounts_sync_interval_hours"
+            android:max="@integer/accounts_sync_interval_hours_max"
+            android:title="@string/p_accounts_sync_interval"
+            app:min="@integer/accounts_sync_interval_hours_min"
+            app:seekBarIncrement="@integer/accounts_sync_interval_hours_inc"
+            app:showSeekBarValue="true"
+            app:updatesContinuously="false" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/p_streaming">
+        <ListPreference
+            android:defaultValue="@string/format_default"
+            android:entries="@array/format_keys"
+            android:entryValues="@array/format_values"
+            android:icon="@drawable/ic_song"
+            android:key="streaming_format"
+            android:summary="%s"
+            android:title="@string/p_format" />
+        <ListPreference
+            android:defaultValue="@string/bitrate_default"
+            android:entries="@array/bitrate_keys"
+            android:entryValues="@array/bitrate_values"
+            android:icon="@drawable/ic_123"
+            android:key="streaming_bitrate"
+            android:summary="%s"
+            android:title="@string/p_bitrate" />
+        <SeekBarPreference
+            android:defaultValue="@integer/streaming_timeout_secs"
+            android:icon="@drawable/ic_clock"
+            android:key="streaming_timeout_secs"
+            android:max="@integer/streaming_timeout_seconds_secs_max"
+            android:title="@string/p_streaming_timeout"
+            app:min="@integer/streaming_timeout_seconds_secs_min"
+            app:seekBarIncrement="@integer/streaming_timeout_secs_inc"
+            app:showSeekBarValue="true"
+            app:updatesContinuously="false" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/p_experimental">
+        <SwitchPreference
+            android:defaultValue="false"
+            android:dependency="accounts_local_enabled"
+            android:icon="@drawable/ic_cast"
+            android:key="cast_local_enabled"
+            android:summary="@string/p_cast_local_enabled_summary"
+            android:title="@string/p_cast_local_enabled"
+            app:updatesContinuously="true" />
+        <MultiSelectListPreference
+            android:dependency="autoplay_on_bt_enabled"
+            android:icon="@drawable/ic_bt_noplay"
+            android:key="autoplay_bt_exclusion"
+            android:summary="@string/p_autoplay_bt_exclusion_summary"
+            android:title="@string/p_autoplay_bt_exclusion" />
+        <SwitchPreference
+            android:defaultValue="false"
+            android:icon="@drawable/ic_music_note"
+            android:key="car_text_icons_enabled"
+            android:summary="@string/p_car_text_icons_enabled_summary"
+            android:title="@string/p_car_text_icons_enabled"
+            app:updatesContinuously="true" />
+        <SwitchPreference
+            android:defaultValue="false"
+            android:icon="@drawable/ic_image"
+            android:key="art_on_bt_enabled"
+            android:summary="@string/p_art_on_bt_enabled_summary"
+            android:title="@string/p_art_on_bt_enabled"
+            app:updatesContinuously="true" />
+        <SwitchPreference
+            android:defaultValue="false"
+            android:enabled="false"
+            android:icon="@drawable/ic_battery_saver"
+            android:key="offload_enabled"
+            android:summary="@string/p_offload_enabled_summary"
+            android:title="@string/p_offload_enabled"
+            app:updatesContinuously="true"/>
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/p_info">
+        <Preference
+            android:icon="@drawable/ic_link"
+            android:key="info_licenses"
+            android:summary="@string/p_info_licenses_summary"
+            android:title="@string/p_info_licenses" />
+
+    </PreferenceCategory>
+</PreferenceScreen>

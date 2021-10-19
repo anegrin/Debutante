@@ -1,0 +1,5 @@
+<resources>
+    <color name="launcher_bg">#eba255</color>
+    <color name="launcher_fg">#063970</color>
+    <color name="notification_fg">#FFFFFF</color>
+</resources>

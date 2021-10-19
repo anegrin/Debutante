@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ArtistsFragment">
+
+    <com.l4digital.fastscroll.FastScrollRecyclerView
+        android:id="@+id/rv_artists"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        app:bubbleColor="?attr/colorPrimaryInverse"
+        app:bubbleSize="small"
+        app:bubbleTextColor="?attr/colorPrimary"
+        app:handleColor="?attr/colorPrimaryInverse"
+        app:hideScrollbar="true"
+        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:spanCount="3" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_refresh"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="@dimen/spacing_medium"
+        android:src="@drawable/ic_refresh" />
+</RelativeLayout>

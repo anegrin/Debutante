@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Debutante" parent="BaseTheme">
+        <item name="mediaRouteTheme">@style/DebutanteMediaRouterTheme</item>
+    </style>
+
+    <style name="DebutanteMediaRouterTheme" parent="Theme.MediaRouter">
+        <item name="mediaRouteButtonStyle">@style/DebutanteMediaRouteButtonStyle</item>
+    </style>
+
+    <style name="DebutanteMediaRouteButtonStyle" parent="Widget.MediaRouter.Light.MediaRouteButton">
+        <item name="mediaRouteButtonTint">?attr/colorPrimary</item>
+    </style>
+</resources>
+

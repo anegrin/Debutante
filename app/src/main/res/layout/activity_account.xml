@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".AccountActivity">
+
+    <ImageView
+        android:id="@+id/iv_logo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:padding="@dimen/spacing_large"
+        android:src="@mipmap/ic_launcher" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/spacing_medium">
+
+        <TextView
+            android:id="@+id/tv_alias"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@id/et_alias"
+            android:layout_alignParentStart="true"
+            android:text="@string/account_alias" />
+
+        <EditText
+            android:id="@+id/et_alias"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignStart="@id/et_username"
+            android:layout_alignParentEnd="true"
+            android:inputType="textUri"
+            android:lines="1"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/tv_url"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@id/et_url"
+            android:layout_alignParentStart="true"
+            android:text="@string/account_url" />
+
+        <EditText
+            android:id="@+id/et_url"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignStart="@id/et_username"
+            android:layout_below="@id/et_alias"
+            android:layout_alignParentEnd="true"
+            android:hint="@string/et_url_hint"
+            android:inputType="textUri"
+            android:lines="1"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/tv_username"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@id/et_username"
+            android:layout_alignParentStart="true"
+            android:text="@string/account_username" />
+
+        <EditText
+            android:id="@+id/et_username"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/et_url"
+            android:layout_alignParentEnd="true"
+            android:layout_marginStart="@dimen/spacing_medium"
+            android:layout_toEndOf="@+id/tv_username"
+            android:inputType="textWebEmailAddress"
+            android:lines="1"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/tv_password"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@id/et_password"
+            android:layout_alignParentStart="true"
+            android:text="@string/account_password" />
+
+        <EditText
+            android:id="@+id/et_password"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/et_username"
+            android:layout_alignStart="@id/et_username"
+            android:layout_alignParentEnd="true"
+            android:inputType="textWebPassword"
+            android:lines="1"
+            android:maxLines="1" />
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal">
+
+        <Button
+            android:layout_margin="@dimen/spacing_small"
+            android:id="@+id/b_test"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/account_test_connection" />
+
+        <Button
+            android:layout_margin="@dimen/spacing_small"
+            android:id="@+id/b_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/account_save" />
+    </LinearLayout>
+</LinearLayout>

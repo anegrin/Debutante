@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/browsing_nav_graph"
+    app:startDestination="@id/f_accounts">
+
+    <fragment
+        android:id="@+id/f_accounts"
+        android:name="io.github.debutante.AccountsFragment"
+        android:label="fragment_accounts"
+        tools:layout="@layout/fragment_accounts">
+        <action
+            android:id="@+id/action_f_accounts_to_f_artists"
+            app:destination="@id/f_artists"
+            app:enterAnim="@android:anim/fade_in"
+            app:exitAnim="@android:anim/fade_out"
+            app:popEnterAnim="@android:anim/fade_in"
+            app:popExitAnim="@android:anim/fade_out" />
+    </fragment>
+    <fragment
+        android:id="@+id/f_artists"
+        android:name="io.github.debutante.ArtistsFragment"
+        android:label="fragment_artists"
+        tools:layout="@layout/fragment_artists">
+        <action
+            android:id="@+id/action_f_artists_to_f_albums"
+            app:destination="@id/f_ablums"
+            app:enterAnim="@android:anim/fade_in"
+            app:exitAnim="@android:anim/fade_out"
+            app:popEnterAnim="@android:anim/fade_in"
+            app:popExitAnim="@android:anim/fade_out" />
+    </fragment>
+    <fragment
+        android:id="@+id/f_ablums"
+        android:name="io.github.debutante.AlbumsFragment"
+        android:label="fragment_albums"
+        tools:layout="@layout/fragment_albums">
+        <action
+            android:id="@+id/action_f_albums_to_f_songs"
+            app:destination="@id/f_songs"
+            app:enterAnim="@android:anim/fade_in"
+            app:exitAnim="@android:anim/fade_out"
+            app:popEnterAnim="@android:anim/fade_in"
+            app:popExitAnim="@android:anim/fade_out" />
+    </fragment>
+    <fragment
+        android:id="@+id/f_songs"
+        android:name="io.github.debutante.SongsFragment"
+        android:label="fragment_songs"
+        tools:layout="@layout/fragment_songs" />
+</navigation>
