@@ -52,13 +52,18 @@
             android:exported="false"
             android:screenOrientation="portrait" />
 
+
         <service
             android:name=".service.MediaService"
-            android:exported="true">
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
             <intent-filter>
+                <action android:name="androidx.media3.session.MediaLibraryService" />
                 <action android:name="android.media.browse.MediaBrowserService" />
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH"/>
             </intent-filter>
         </service>
+
         <service
             android:name=".service.MediaDownloadService"
             android:exported="false">
