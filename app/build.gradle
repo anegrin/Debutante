@@ -13,9 +13,9 @@ android {
     defaultConfig {
         applicationId "io.github.debutante"
         minSdk 28
-        targetSdk 34
-        versionCode 1_00_01
-        versionName "1.0.1"
+        targetSdk 36
+        versionCode 1_00_02
+        versionName "1.0.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -81,7 +81,7 @@ configurations.all {
 }
 
 dependencies {
-    implementation "io.github.l4digital:fastscroll:2.0.1"
+    implementation "io.github.l4digital:fastscroll:2.1.0"
     implementation 'com.apachat:swipereveallayout-android:1.1.2'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
     implementation "com.squareup.picasso:picasso:2.8"
@@ -109,7 +109,7 @@ dependencies {
     implementation "androidx.room:room-rxjava3:$room_version"
     testImplementation "androidx.room:room-testing:$room_version"
 
-    def nav_version = "2.8.9"
+    def nav_version = "2.9.6"
     implementation "androidx.navigation:navigation-fragment:$nav_version"
     implementation "androidx.navigation:navigation-ui:$nav_version"
     androidTestImplementation "androidx.navigation:navigation-testing:$nav_version"

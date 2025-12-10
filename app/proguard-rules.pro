@@ -24,3 +24,6 @@
 -keep @androidx.room.Entity class *
 -dontwarn androidx.room.paging.**
 -keep class io.github.debutante.** { *; }
+-dontwarn kotlin.uuid.ExperimentalUuidApi
+-dontwarn kotlin.uuid.Uuid$Companion
+-dontwarn kotlin.uuid.Uuid
