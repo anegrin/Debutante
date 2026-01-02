@@ -27,6 +27,10 @@ public final class DeviceHelper {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
     }
 
+    public static boolean receiversCanStartForegroundServices() {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S;
+    }
+
     public static boolean doNotRequireBTPermissions() {
         return !requireBTPermissions();
     }

@@ -1,5 +1,7 @@
 package io.github.debutante.receivers;
 
+import static io.github.debutante.helper.DeviceHelper.receiversCanStartForegroundServices;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -88,7 +90,6 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
 
     public static void broadcast(Context context) {
         Intent intent = new Intent(SyncAccountBroadcastReceiver.ACTION);
-        context.sendBroadcast(intent);
         context.sendBroadcast(Obj.tap(intent, SyncAccountBroadcastReceiver::logBroadcast));
     }
 
@@ -132,7 +133,11 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
                 } else {
                     rxHelper.subscribe(repository.getAllAccounts(), l -> l.stream().filter(AccountEntity::isCloud).forEach(a -> loadAccount(context, a)), Throwable::printStackTrace);
                 }
-                context.startForegroundService(new Intent(context, SyncService.class));
+                if (receiversCanStartForegroundServices()) {
+                    context.startForegroundService(new Intent(context, SyncService.class));
+                } /*else {
+//TODO, show notification to stop the loading
+                }*/
             } else if (playing) {
                 String message = context.getString(R.string.cant_sync_while_playing);
                 toast(context, message);
@@ -405,14 +410,14 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
         if (!counters.checking.getAndSet(true)) {
 
             Completable.fromAction(() -> {
-                long timeoutAt = System.currentTimeMillis() + TIMEOUT.toMillis();
-                boolean done = false;
-                while (!counters.done() && !done && System.currentTimeMillis() < timeoutAt && !forceStop.get()) {
-                    Thread.sleep(CHECK_DELAY.toMillis() / 5);
-                    done = counters.done();
-                }
+                        long timeoutAt = System.currentTimeMillis() + TIMEOUT.toMillis();
+                        boolean done = false;
+                        while (!counters.done() && !done && System.currentTimeMillis() < timeoutAt && !forceStop.get()) {
+                            Thread.sleep(CHECK_DELAY.toMillis() / 5);
+                            done = counters.done();
+                        }
 
-            }).delay(CHECK_DELAY.toMillis(), TimeUnit.MILLISECONDS)
+                    }).delay(CHECK_DELAY.toMillis(), TimeUnit.MILLISECONDS)
                     .subscribeOn(Schedulers.from(Executors.newSingleThreadExecutor(RxHelper.LOW_PRI_THREAD_FACTORY)))
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(() -> {

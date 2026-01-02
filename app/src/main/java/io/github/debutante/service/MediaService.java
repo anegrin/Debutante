@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 
@@ -14,6 +15,7 @@ import androidx.media.MediaBrowserServiceCompat;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -36,15 +38,22 @@ public class MediaService extends MediaBrowserServiceCompat {
     }
 
     @Override
+    public IBinder onBind(Intent intent) {
+        L.i("Binding to media service, action: " + Optional.ofNullable(intent).map(Intent::getAction).orElse("<none>"));
+        return super.onBind(intent);
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        super.onStartCommand(intent, flags, startId);
-        return START_NOT_STICKY;
+        L.i("Starting media service, action: " + Optional.ofNullable(intent).map(Intent::getAction).orElse("<none>"));
+        return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
         L.i("Creating media service");
+        d().mediaSession().setActive(true);
         setSessionToken(d().mediaSession().getSessionToken());
     }
 
