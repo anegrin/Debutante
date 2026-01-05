@@ -53,7 +53,6 @@ public class MediaService extends MediaBrowserServiceCompat {
     public void onCreate() {
         super.onCreate();
         L.i("Creating media service");
-        d().mediaSession().setActive(true);
         setSessionToken(d().mediaSession().getSessionToken());
     }
 
