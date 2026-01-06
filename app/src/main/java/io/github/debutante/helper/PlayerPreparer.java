@@ -129,7 +129,6 @@ public class PlayerPreparer {
                 }
             }
 
-
             if (saveSate) {
                 PlayerState.persistMediaItems(context, a.uuid(), parentMediaItem, mediaItems);
                 PlayerState.persistCurrentMediaItemId(context, a.uuid(), mediaItemId);
@@ -138,6 +137,11 @@ public class PlayerPreparer {
             Player player = playerWrapper.player();
             player.setPlayWhenReady(playWhenReady);
             player.setMediaItems(items, windowIndex, startPositionMs);
+            if (player.getAvailableCommands().contains(Player.COMMAND_SET_PLAYLIST_METADATA)) {
+                player.setPlaylistMetadata(new MediaMetadata.Builder()
+                        .setTotalTrackCount(items.size())
+                        .build());
+            }
             player.prepare();
 
             onComplete.run();

@@ -1,22 +1,26 @@
 package io.github.debutante.service;
 
+import android.app.Service;
 import android.content.Intent;
+import android.os.IBinder;
+
+import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.Player;
 
 import io.github.debutante.Debutante;
-import io.github.debutante.R;
 import io.github.debutante.helper.L;
 import io.github.debutante.helper.PlayerWrapper;
 
-public class InitService extends BaseForegroundService {
+public class InitService extends Service {
 
-    private static final int NOTIFICATION_ID = Debutante.NOTIFICATION_ID - 2;
     public static final String ACTION_PLAY = InitService.class.getSimpleName() + "-ACTION_PLAY";
     public static final String ACTION_PREPARE = InitService.class.getSimpleName() + "-ACTION_PREPARE";
 
-    public InitService() {
-        super(R.string.init_service_notification_content, NOTIFICATION_ID);
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 
     @Override
@@ -49,7 +53,11 @@ public class InitService extends BaseForegroundService {
 
         }
 
-        doStopSelf();
         return startCommand;
     }
+
+    protected Debutante d() {
+        return (Debutante) getApplication();
+    }
+
 }

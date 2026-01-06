@@ -37,7 +37,7 @@ public class A2DPReceiver extends BroadcastReceiver {
                     AppConfig appConfig = Debutante.loadAppConfig(context);
                     BluetoothDevice bluetoothDevice = (BluetoothDevice) parcelableExtra;
                     if (!CollectionUtils.containsAny(appConfig.getAutoplayBTExclusion(), bluetoothDevice.getAddress())) {
-                        context.startForegroundService(Obj.tap(new Intent(context, InitService.class), i -> i.setAction(InitService.ACTION_PLAY)));
+                        context.startService(Obj.tap(new Intent(context, InitService.class), i -> i.setAction(InitService.ACTION_PLAY)));
                     }
                 }
             }

@@ -63,9 +63,7 @@
             android:exported="true"
             tools:ignore="ExportedService">
             <intent-filter>
-                <action android:name="android.intent.action.MEDIA_BUTTON" />
                 <action android:name="android.media.browse.MediaBrowserService" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
 
@@ -86,8 +84,7 @@
             android:foregroundServiceType="mediaPlayback" />
         <service
             android:name=".service.InitService"
-            android:exported="true"
-            android:foregroundServiceType="mediaPlayback" />
+            android:exported="true" />
         <service
             android:name=".service.HTTPDService"
             android:exported="true"
@@ -105,14 +102,6 @@
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <receiver
-            android:name="androidx.media.session.MediaButtonReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_BUTTON" />
-            </intent-filter>
-        </receiver>
         <receiver
             android:name=".receivers.A2DPReceiver"
             android:enabled="true"

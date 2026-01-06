@@ -12,7 +12,6 @@ public class BootCompletedReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         L.i("Receiving " + intent.getAction() + " " + L.toString(intent.getExtras()));
-        //context.startForegroundService(Obj.tap(new Intent(context, InitService.class), i -> i.setAction(InitService.ACTION_PREPARE)));
         new Scheduler(context).scheduleSync(new AppConfig(context), false);
     }
 }
