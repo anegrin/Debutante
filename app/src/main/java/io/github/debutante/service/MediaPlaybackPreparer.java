@@ -94,12 +94,10 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromSearch(String query, boolean playWhenReady, @Nullable Bundle extras) {
-        throw new UnsupportedOperationException();
     }
 
     @Override
     public void onPrepareFromUri(Uri uri, boolean playWhenReady, @Nullable Bundle extras) {
-        throw new UnsupportedOperationException();
     }
 
     @Override

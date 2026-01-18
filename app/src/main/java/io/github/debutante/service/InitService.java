@@ -8,6 +8,8 @@ import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.Player;
 
+import java.util.Optional;
+
 import io.github.debutante.Debutante;
 import io.github.debutante.helper.L;
 import io.github.debutante.helper.PlayerWrapper;
@@ -27,7 +29,7 @@ public class InitService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         int startCommand = super.onStartCommand(intent, flags, startId);
 
-        String action = intent.getAction();
+        String action = Optional.ofNullable(intent).map(Intent::getAction).orElse(null);
 
         boolean autoplayOnBTEnabled = d().appConfig().isAutoplayOnBTEnabled();
 
