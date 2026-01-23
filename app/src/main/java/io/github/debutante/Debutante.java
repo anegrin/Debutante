@@ -352,9 +352,10 @@ public class Debutante extends Application {
         playerWrapper = new PlayerWrapper(this, exoPlayer, castPlayer, repository, appConfig);
 
         MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
+            m.setPlayer(playerWrapper.player());
+            m.setDispatchUnsupportedActionsEnabled(true);
             m.setPlaybackPreparer(new MediaPlaybackPreparer(getApplicationContext(), playerWrapper, repository));
             m.setQueueNavigator(new MediaQueueNavigator(getApplicationContext(), mediaSession, appConfig, s -> new File(cacheDir, okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1")));
-            m.setPlayer(playerWrapper.player());
         });
 
         castPlayer.setSessionAvailabilityListener(new CastSessionAvailabilityListener(getApplicationContext(), playerWrapper, mediaSessionConnector, appConfig));

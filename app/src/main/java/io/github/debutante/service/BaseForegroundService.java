@@ -48,7 +48,8 @@ public abstract class BaseForegroundService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        L.i("Binding " + getClass().getSimpleName());
+        return new LocalBinder<>(this);
     }
 
     @Override

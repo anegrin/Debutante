@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -53,10 +54,11 @@ public class MediaService extends MediaBrowserServiceCompat {
     public void onCreate() {
         super.onCreate();
         L.i("Creating media service");
-        if (!d().mediaSession().isActive()) {
-            d().mediaSession().setActive(!d().playerWrapper().isCasting());
+        MediaSessionCompat mediaSession = d().mediaSession();
+        if (!d().playerWrapper().isCasting()) {
+            mediaSession.setActive(true);
         }
-        setSessionToken(d().mediaSession().getSessionToken());
+        setSessionToken(mediaSession.getSessionToken());
     }
 
     @Nullable
@@ -65,6 +67,13 @@ public class MediaService extends MediaBrowserServiceCompat {
         String rootId = MediaBrowserHelper.ROOT_ID + "?_sid=" + sessionId;
         L.i("onGetRoot: " + rootId);
         return new BrowserRoot(rootId, null);
+    }
+
+    @Override
+    public void onLoadItem(String itemId, @NonNull Result<MediaBrowserCompat.MediaItem> result) {
+        L.i("onLoadItem: " + itemId);
+        result.detach();
+        MediaBrowserHelper.loadFromService(this, d().repository(), withSessionId(itemId), result::sendResult);
     }
 
     @Override

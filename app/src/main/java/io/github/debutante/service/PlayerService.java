@@ -28,6 +28,22 @@ public class PlayerService extends BaseForegroundService {
         super(R.string.player_service_notification_content, NOTIFICATION_ID);
     }
 
+    /*@Override
+    public void onCreate() {
+        super.onCreate();
+        bindService(new Intent("android.media.browse.MediaBrowserService").setPackage(getPackageName()), new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                L.i("MediaService: " + service);
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+
+            }
+        }, BIND_NOT_FOREGROUND);
+    }*/
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         synchronized (GLOBAL_LOCK) {
