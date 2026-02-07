@@ -1,9 +1,14 @@
 package io.github.debutante.service;
 
+import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION;
+
 import android.content.Context;
 import android.content.Intent;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.Build;
+
+import androidx.annotation.RequiresApi;
 
 import com.google.android.exoplayer2.util.MimeTypes;
 
@@ -62,8 +67,9 @@ public class HTTPDService extends BaseForegroundService {
 
     private DebutanteHTTPD httpd;
 
+    @RequiresApi(api = Build.VERSION_CODES.R)
     public HTTPDService() {
-        super(R.string.httpd_service_notification_content, NOTIFICATION_ID);
+        super(R.string.httpd_service_notification_content, NOTIFICATION_ID, FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
     }
 
     @Override

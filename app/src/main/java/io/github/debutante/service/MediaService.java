@@ -1,6 +1,10 @@
 package io.github.debutante.service;
 
+import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK;
+import static io.github.debutante.service.BaseForegroundService.buildNotification;
+
 import android.Manifest;
+import android.app.Notification;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -21,12 +25,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.github.debutante.Debutante;
+import io.github.debutante.R;
 import io.github.debutante.helper.DeviceHelper;
 import io.github.debutante.helper.L;
 import io.github.debutante.helper.MediaBrowserHelper;
 import io.github.debutante.helper.Obj;
 
 public class MediaService extends MediaBrowserServiceCompat {
+    private static final int NOTIFICATION_ID = Debutante.NOTIFICATION_ID + 4;
 
     private static String sessionId = UUID.randomUUID().toString();
 
@@ -46,8 +52,15 @@ public class MediaService extends MediaBrowserServiceCompat {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        super.onStartCommand(intent, flags, startId);
         L.i("Starting media service, action: " + Optional.ofNullable(intent).map(Intent::getAction).orElse("<none>"));
-        return super.onStartCommand(intent, flags, startId);
+        Notification notification = buildNotification(this, Optional.empty(), R.string.media_service_notification_content, false, null);
+        if (DeviceHelper.needsForegroundServiceTypeOnStart()) {
+            startForeground(NOTIFICATION_ID, notification, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        } else {
+            startForeground(NOTIFICATION_ID, notification);
+        }
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -55,32 +68,36 @@ public class MediaService extends MediaBrowserServiceCompat {
         super.onCreate();
         L.i("Creating media service");
         MediaSessionCompat mediaSession = d().mediaSession();
-        if (!d().playerWrapper().isCasting()) {
-            mediaSession.setActive(true);
-        }
         setSessionToken(mediaSession.getSessionToken());
+        startForegroundService(new Intent(this, MediaService.class));
     }
 
     @Nullable
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
         String rootId = MediaBrowserHelper.ROOT_ID + "?_sid=" + sessionId;
-        L.i("onGetRoot: " + rootId);
-        return new BrowserRoot(rootId, null);
+        L.i("onGetRoot: " + rootId + ", client: " + clientPackageName);
+
+        Bundle extras = new Bundle();
+        extras.putBoolean("android.media.browse.CONTENT_STYLE_SUPPORTED", true);
+        extras.putInt("android.media.browse.CONTENT_STYLE_BROWSABLE_HINT", 1);
+        extras.putInt("android.media.browse.CONTENT_STYLE_PLAYABLE_HINT", 1);
+
+        return new BrowserRoot(rootId, extras);
     }
 
     @Override
     public void onLoadItem(String itemId, @NonNull Result<MediaBrowserCompat.MediaItem> result) {
         L.i("onLoadItem: " + itemId);
-        result.detach();
         MediaBrowserHelper.loadFromService(this, d().repository(), withSessionId(itemId), result::sendResult);
+        result.detach();
     }
 
     @Override
     public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
         L.i("onLoadChildren: " + parentId);
-        result.detach();
         MediaBrowserHelper.loadChildrenFromService(this, d().repository(), withSessionId(parentId), children -> doSendResults(children, result));
+        result.detach();
     }
 
     private void doSendResults(List<MediaBrowserCompat.MediaItem> children, Result<List<MediaBrowserCompat.MediaItem>> result) {

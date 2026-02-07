@@ -1,7 +1,12 @@
 package io.github.debutante.service;
 
+import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK;
+
 import android.content.Intent;
+import android.os.Build;
 import android.os.PowerManager;
+
+import androidx.annotation.RequiresApi;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -24,8 +29,9 @@ public class PlayerService extends BaseForegroundService {
     private static final Object GLOBAL_LOCK = new Object();
     private PowerManager.WakeLock wakeLock;
 
+    @RequiresApi(api = Build.VERSION_CODES.R)
     public PlayerService() {
-        super(R.string.player_service_notification_content, NOTIFICATION_ID);
+        super(R.string.player_service_notification_content, NOTIFICATION_ID, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
     }
 
     /*@Override

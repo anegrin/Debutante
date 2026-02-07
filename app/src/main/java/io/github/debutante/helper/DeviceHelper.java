@@ -23,6 +23,10 @@ public final class DeviceHelper {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
     }
 
+    public static boolean needsForegroundServiceTypeOnStart() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+    }
+
     public static boolean requireBTPermissions() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
     }

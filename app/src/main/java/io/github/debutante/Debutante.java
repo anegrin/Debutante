@@ -3,7 +3,9 @@ package io.github.debutante;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Looper;
@@ -69,6 +71,7 @@ import io.github.debutante.listeners.MediaSessionNotificationListener;
 import io.github.debutante.model.AppConfig;
 import io.github.debutante.persistence.EntityRepository;
 import io.github.debutante.receivers.SyncAccountBroadcastReceiver;
+import io.github.debutante.service.BaseForegroundService;
 import io.github.debutante.service.MediaPlaybackPreparer;
 import io.github.debutante.service.MediaQueueNavigator;
 import okhttp3.Call;
@@ -348,14 +351,15 @@ public class Debutante extends Application {
         AudioMediaItemConverter mediaItemConverter = new AudioMediaItemConverter();
         final CastPlayer castPlayer = new CastPlayer(sharedInstance, mediaItemConverter);
 
-        mediaSession = new MediaSessionCompat(getApplicationContext(), getPackageName());
+        mediaSession = new MediaSessionCompat(getApplicationContext(), getApplicationContext().getString(R.string.app_name));
         playerWrapper = new PlayerWrapper(this, exoPlayer, castPlayer, repository, appConfig);
+        mediaSession.setSessionActivity(PendingIntent.getActivity(getApplicationContext(), BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(getApplicationContext(), MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
         MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
-            m.setPlayer(playerWrapper.player());
-            m.setDispatchUnsupportedActionsEnabled(true);
-            m.setPlaybackPreparer(new MediaPlaybackPreparer(getApplicationContext(), playerWrapper, repository));
             m.setQueueNavigator(new MediaQueueNavigator(getApplicationContext(), mediaSession, appConfig, s -> new File(cacheDir, okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1")));
+            playerWrapper.player().prepare();
+            m.setPlayer(playerWrapper.player());
+            m.setPlaybackPreparer(new MediaPlaybackPreparer(getApplicationContext(), playerWrapper, repository));
         });
 
         castPlayer.setSessionAvailabilityListener(new CastSessionAvailabilityListener(getApplicationContext(), playerWrapper, mediaSessionConnector, appConfig));

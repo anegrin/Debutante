@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -67,14 +68,15 @@ public class MediaBrowserHelper {
 
 
     public static void load(final Context context, EntityRepository repository, @NonNull String id, @NonNull Consumer<MediaBrowserCompat.MediaItem> result) {
-        load(context, repository, id, result, true);
+        load(context, repository, id, result, null, true);
     }
 
     public static void loadFromService(final Context context, EntityRepository repository, @NonNull String id, @NonNull Consumer<MediaBrowserCompat.MediaItem> result) {
-        load(context, repository, id, result, false);
+        Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(2));
+        load(context, repository, id, result, scheduler, false);
     }
 
-    private static void load(final Context context, EntityRepository repository, @NonNull String id, @NonNull Consumer<MediaBrowserCompat.MediaItem> result, boolean withIcon) {
+    private static void load(final Context context, EntityRepository repository, @NonNull String id, @NonNull Consumer<MediaBrowserCompat.MediaItem> result, Scheduler scheduler, boolean withIcon) {
         log("load, id=" + id);
         if (id.startsWith(ROOT_ID)) {
             MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
@@ -88,21 +90,22 @@ public class MediaBrowserHelper {
         } else {
             EntityHelper.EntityMetadata metadata = EntityHelper.metadata(id);
 
+            RxHelper rxHelper = scheduler != null ? RxHelper.newInstance(scheduler, scheduler) : RxHelper.defaultInstance();
             if (metadata.type == AccountEntity.class) {
-                RxHelper.defaultInstance().subscribe(repository.findAccountByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
+                rxHelper.subscribe(repository.findAccountByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
             } else if (metadata.type == ArtistEntity.class) {
-                RxHelper.defaultInstance().subscribe(repository.findArtistByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
+                rxHelper.subscribe(repository.findArtistByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
             } else if (metadata.type == AlbumEntity.class) {
-                RxHelper.defaultInstance().subscribe(repository.findAlbumByUuid(metadata.uuid), a -> result.accept(toMediaItem(context, a, withIcon)), t -> toastLoadFailure(context, t));
+                rxHelper.subscribe(repository.findAlbumByUuid(metadata.uuid), a -> result.accept(toMediaItem(context, a, withIcon)), t -> toastLoadFailure(context, t));
             } else if (metadata.type == SongEntity.class) {
-                RxHelper.defaultInstance().subscribe(repository.findSongByUuid(metadata.uuid), s -> result.accept(toMediaItem(context, s, withIcon)), t -> toastLoadFailure(context, t));
+                rxHelper.subscribe(repository.findSongByUuid(metadata.uuid), s -> result.accept(toMediaItem(context, s, withIcon)), t -> toastLoadFailure(context, t));
             }
         }
     }
 
     public static void loadChildrenFromService(Context context, EntityRepository repository, @NonNull String parentId, @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result) {
         log("loadChildrenFromService, parentId=" + parentId);
-        Scheduler scheduler = Schedulers.newThread();
+        Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(2));
         loadChildren(context, repository, parentId, result, scheduler, scheduler, false);
     }
 
