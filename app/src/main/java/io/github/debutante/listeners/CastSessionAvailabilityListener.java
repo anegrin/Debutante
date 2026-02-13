@@ -53,8 +53,8 @@ public class CastSessionAvailabilityListener implements SessionAvailabilityListe
                             context.startForegroundService(new Intent(context, HTTPDService.class));
                         }
                         playerWrapper.swtichToCast();
-                        mediaSessionConnector.setPlayer(null);
-                        mediaSessionConnector.mediaSession.setActive(false);
+                        //mediaSessionConnector.setPlayer(null);
+                        //mediaSessionConnector.mediaSession.setActive(false);
                     }
                 }, Throwable::printStackTrace);
     }
@@ -75,8 +75,8 @@ public class CastSessionAvailabilityListener implements SessionAvailabilityListe
                             context.stopService(new Intent(context, HTTPDService.class));
                         }
                         playerWrapper.switchToExo();
-                        mediaSessionConnector.setPlayer(playerWrapper.player());
-                        mediaSessionConnector.mediaSession.setActive(true);
+                        //mediaSessionConnector.setPlayer(playerWrapper.player());
+                        //mediaSessionConnector.mediaSession.setActive(true);
                         if (Debutante.HANDLE_AUDIO_BECOMING_NOISY) {
                             ChangeIsPlayingBroadcastReceiver.broadcast(context, false);
                         }

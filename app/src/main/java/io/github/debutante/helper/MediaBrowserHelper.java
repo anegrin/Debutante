@@ -199,6 +199,7 @@ public class MediaBrowserHelper {
         String mediaId = EntityHelper.mediaId(accountEntity);
         MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
                 .setMediaId(mediaId)
+                .setMediaUri(Uri.parse(mediaId))
                 .setTitle(accountEntity.alias)
                 .setDescription(accountEntity.username + " @ " + accountEntity.url);
         if (withIcon) {
@@ -208,8 +209,10 @@ public class MediaBrowserHelper {
     }
 
     private static MediaBrowserCompat.MediaItem toMediaItem(ArtistEntity artistEntity, boolean withIcon) {
+        String mediaId = EntityHelper.mediaId(artistEntity);
         MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
-                .setMediaId(EntityHelper.mediaId(artistEntity))
+                .setMediaId(mediaId)
+                .setMediaUri(Uri.parse(mediaId))
                 .setTitle(artistEntity.name);
         if (withIcon) {
             builder = builder.setIconUri(ARTIST_ICON_URI);
@@ -218,8 +221,10 @@ public class MediaBrowserHelper {
     }
 
     private static MediaBrowserCompat.MediaItem toMediaItem(Context context, AlbumEntity album, boolean withIcon) {
+        String mediaId = EntityHelper.mediaId(album);
         MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
-                .setMediaId(EntityHelper.mediaId(album))
+                .setMediaId(mediaId)
+                .setMediaUri(Uri.parse(mediaId))
                 .setTitle(album.year > 0 ? String.format(context.getString(R.string.name_year_pattern), album.name, album.year) : album.name);
         if (withIcon) {
             builder = builder.setIconUri(ALBUM_ICON_URI);
@@ -228,8 +233,10 @@ public class MediaBrowserHelper {
     }
 
     private static MediaBrowserCompat.MediaItem toMediaItem(Context context, SongEntity songEntity, boolean withIcon) {
+        String mediaId = EntityHelper.mediaId(songEntity);
         MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
-                .setMediaId(EntityHelper.mediaId(songEntity))
+                .setMediaId(mediaId)
+                .setMediaUri(Uri.parse(mediaId))
                 .setTitle(songEntity.title)
                 .setDescription(String.format(context.getString(R.string.name_duration_pattern), songEntity.album, DurationFormatUtils.formatDuration(songEntity.duration * 1000L, "mm:ss")));
         if (withIcon) {

@@ -12,10 +12,10 @@ android {
 
     defaultConfig {
         applicationId="io.github.debutante"
-        minSdk=26
+        minSdk=28
         targetSdk=36
-        versionCode=1_01_00
-        versionName="1.1.0"
+        versionCode=1_02_01
+        versionName="1.2.1"
 
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
 
@@ -116,7 +116,7 @@ dependencies {
 
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.preference:preference:1.2.1'
-    implementation 'androidx.media:media:1.7.1'
+    implementation 'androidx.media:media:1.6.0'
     implementation 'androidx.mediarouter:mediarouter:1.8.1'
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.annotation:annotation:1.9.1'

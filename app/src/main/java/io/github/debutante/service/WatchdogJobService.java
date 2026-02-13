@@ -22,7 +22,6 @@ public class WatchdogJobService extends JobService {
         } else {
             jobFinished(params, false);
             stopService(new Intent(this, PlayerService.class));
-            stopService(new Intent(this, MediaService.class));
             return false;
         }
 

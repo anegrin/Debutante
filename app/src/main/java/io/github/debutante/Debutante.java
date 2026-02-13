@@ -1,5 +1,7 @@
 package io.github.debutante;
 
+import static io.github.debutante.BuildConfig.L_D;
+
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -10,6 +12,7 @@ import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 
 import androidx.annotation.NonNull;
 
@@ -87,7 +90,7 @@ public class Debutante extends Application {
     private final Object PICASSO_LOCK = new Object();
     private AppConfig appConfig;
 
-    public static final String TAG = "Debutante";
+    public static final String TAG = L_D ? "Debugante" :  "Debutante";
     public static final String NOTIFICATION_CHANNEL_ID = TAG;
     public static final int NOTIFICATION_ID = 2112;
     public static final Requirements DOWNLOAD_REQUIREMENTS_DEFAULT = new Requirements(Requirements.NETWORK);
@@ -115,7 +118,7 @@ public class Debutante extends Application {
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
 
-        if (BuildConfig.L_D) {
+        if (L_D) {
             CoreConfigurationBuilder builder = new CoreConfigurationBuilder(this);
             //core configuration:
             builder
@@ -288,7 +291,7 @@ public class Debutante extends Application {
 
             picassoCache = new okhttp3.Cache(cacheDir, s);
             OkHttp3Downloader downloader = new OkHttp3Downloader(newOkHttpClientBuilder(appConfig).cache(picassoCache).build());
-            picasso = new Picasso.Builder(getApplicationContext()).indicatorsEnabled(BuildConfig.L_D).downloader(downloader).build();
+            picasso = new Picasso.Builder(getApplicationContext()).indicatorsEnabled(L_D).downloader(downloader).build();
         };
         listener.accept(appConfig.getCoverArtCacheSize());
 
@@ -352,15 +355,17 @@ public class Debutante extends Application {
         final CastPlayer castPlayer = new CastPlayer(sharedInstance, mediaItemConverter);
 
         mediaSession = new MediaSessionCompat(getApplicationContext(), getApplicationContext().getString(R.string.app_name));
+        mediaSession.setActive(true);
         playerWrapper = new PlayerWrapper(this, exoPlayer, castPlayer, repository, appConfig);
         mediaSession.setSessionActivity(PendingIntent.getActivity(getApplicationContext(), BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(getApplicationContext(), MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
         MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
-            m.setQueueNavigator(new MediaQueueNavigator(getApplicationContext(), mediaSession, appConfig, s -> new File(cacheDir, okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1")));
-            playerWrapper.player().prepare();
             m.setPlayer(playerWrapper.player());
+            m.setQueueNavigator(new MediaQueueNavigator(getApplicationContext(), mediaSession, appConfig, s -> new File(cacheDir, okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1")));
             m.setPlaybackPreparer(new MediaPlaybackPreparer(getApplicationContext(), playerWrapper, repository));
         });
+
+        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_CONNECTING, 0, 1.0f).build());
 
         castPlayer.setSessionAvailabilityListener(new CastSessionAvailabilityListener(getApplicationContext(), playerWrapper, mediaSessionConnector, appConfig));
 

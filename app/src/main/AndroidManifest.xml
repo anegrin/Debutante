@@ -9,6 +9,7 @@
     <uses-permission
         android:name="android.permission.FOREGROUND_SERVICE"
         tools:ignore="ForegroundServicesPolicy" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -20,17 +21,7 @@
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <!-- uses-permission
-        android:name="android.permission.BLUETOOTH_ADMIN"
-        android:maxSdkVersion="30" />
-    <uses-permission
-        android:name="android.permission.BLUETOOTH_SCAN"
-        android:minSdkVersion="31"
-        android:usesPermissionFlags="neverForLocation" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" / -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <!-- uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.REQUEST_COMPANION_START_FOREGROUND_SERVICES_FROM_BACKGROUND" / -->
 
     <uses-feature
         android:name="android.hardware.bluetooth"
@@ -77,12 +68,9 @@
         <service
             android:name=".service.MediaService"
             android:exported="true"
-            android:foregroundServiceType="mediaPlayback"
             tools:ignore="ExportedService">
             <intent-filter>
-                <!-- action android:name="androidx.media3.session.MediaSessionService"/ -->
                 <action android:name="android.media.browse.MediaBrowserService" />
-                <!-- action android:name="android.intent.action.MEDIA_BUTTON" / -->
             </intent-filter>
         </service>
 
@@ -101,7 +89,8 @@
         <service
             android:name=".service.PlayerService"
             android:exported="true"
-            android:foregroundServiceType="mediaPlayback" />
+            android:foregroundServiceType="mediaPlayback" >
+        </service>
         <service
             android:name=".service.InitService"
             android:exported="true" />
@@ -121,15 +110,6 @@
             android:name=".service.WatchdogJobService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
-
-        <!-- receiver
-            android:name="androidx.media.session.MediaButtonReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_BUTTON" />
-            </intent-filter>
-        </receiver -->
 
         <receiver
             android:name=".receivers.A2DPReceiver"
