@@ -355,17 +355,19 @@ public class Debutante extends Application {
         final CastPlayer castPlayer = new CastPlayer(sharedInstance, mediaItemConverter);
 
         mediaSession = new MediaSessionCompat(getApplicationContext(), getApplicationContext().getString(R.string.app_name));
-        mediaSession.setActive(true);
         playerWrapper = new PlayerWrapper(this, exoPlayer, castPlayer, repository, appConfig);
+        mediaSession.setActive(true);
         mediaSession.setSessionActivity(PendingIntent.getActivity(getApplicationContext(), BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(getApplicationContext(), MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PAUSED, 0, 1.0f).build());
 
         MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
+            MediaPlaybackPreparer playbackPreparer = new MediaPlaybackPreparer(getApplicationContext(), playerWrapper, repository);
+            MediaQueueNavigator queueNavigator = new MediaQueueNavigator(getApplicationContext(), mediaSession, appConfig, s -> new File(cacheDir, okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1"));
+            m.setPlaybackPreparer(playbackPreparer);
+            m.setQueueNavigator(queueNavigator);
             m.setPlayer(playerWrapper.player());
-            m.setQueueNavigator(new MediaQueueNavigator(getApplicationContext(), mediaSession, appConfig, s -> new File(cacheDir, okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1")));
-            m.setPlaybackPreparer(new MediaPlaybackPreparer(getApplicationContext(), playerWrapper, repository));
         });
 
-        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_CONNECTING, 0, 1.0f).build());
 
         castPlayer.setSessionAvailabilityListener(new CastSessionAvailabilityListener(getApplicationContext(), playerWrapper, mediaSessionConnector, appConfig));
 
@@ -373,6 +375,8 @@ public class Debutante extends Application {
 
         exoPlayer.addListener(new ExoPlayerListener(getApplicationContext(), exoPlayer, downloadManager, playerNotificationManager, appConfig.getSongsToPreload(), playerWrapper));
         castPlayer.addListener(new CastPlayerListener(getApplicationContext(), castPlayer, sharedInstance.getPrecacheManager(), mediaItemConverter, playerWrapper));
+
+        playerWrapper.player().prepare();
 
         registerReceiver(new SyncAccountBroadcastReceiver(okHttpClient, playerWrapper, gson, repository), Obj.tap(new IntentFilter(), f -> {
                     f.addAction(SyncAccountBroadcastReceiver.ACTION);

@@ -33,7 +33,7 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
     private final Function<String, File> cachedFileResolver;
 
     public MediaQueueNavigator(Context context, MediaSessionCompat mediaSession, AppConfig appConfig, Function<String, File> cachedFileResolver) {
-        super(mediaSession, Integer.MAX_VALUE);
+        super(mediaSession, 4096);
         this.appConfig = appConfig;
         this.cachedFileResolver = cachedFileResolver;
 
@@ -51,6 +51,9 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
         MediaItem mediaItem = player.getMediaItemAt(windowIndex);
 
         Bundle extras = new Bundle();
+
+        extras.putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, mediaItem.mediaId);
+
         if (mediaItem.mediaMetadata.trackNumber != null) {
             extras.putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, mediaItem.mediaMetadata.trackNumber);
         }
