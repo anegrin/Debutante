@@ -12,7 +12,6 @@ import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 
 import androidx.annotation.NonNull;
 
@@ -355,8 +354,8 @@ public class Debutante extends Application {
         final CastPlayer castPlayer = new CastPlayer(sharedInstance, mediaItemConverter);
 
         mediaSession = new MediaSessionCompat(getApplicationContext(), getApplicationContext().getString(R.string.app_name));
+        mediaSession.setActive(true);
         playerWrapper = new PlayerWrapper(this, exoPlayer, castPlayer, repository, appConfig);
-        mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
         mediaSession.setSessionActivity(PendingIntent.getActivity(getApplicationContext(), BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(getApplicationContext(), MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
         MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
@@ -382,10 +381,6 @@ public class Debutante extends Application {
                 }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
         );
 
-        PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder().setActiveQueueItemId(0).setBufferedPosition(0).setState(PlaybackStateCompat.STATE_STOPPED, 0, 1.0f).build();
-        L.i("Initial session state: " + playbackState);
-        mediaSession.setPlaybackState(playbackState);
-        mediaSession.setActive(true);
     }
 
     public AppConfig appConfig() {

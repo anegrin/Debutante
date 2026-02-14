@@ -49,8 +49,6 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
     public MediaDescriptionCompat getMediaDescription(Player player, int windowIndex) {
         MediaItem mediaItem = player.getMediaItemAt(windowIndex);
 
-        L.d("Getting media description for window index: " + windowIndex);
-
         Bundle extras = new Bundle();
 
         extras.putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, mediaItem.mediaId);

@@ -15,6 +15,7 @@ import androidx.media.MediaBrowserServiceCompat;
 
 import org.apache.commons.collections4.CollectionUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +28,9 @@ import io.github.debutante.helper.MediaBrowserHelper;
 import io.github.debutante.helper.Obj;
 
 public class MediaService extends MediaBrowserServiceCompat {
+
+    private static final String EMPTY_ROOT = "EMPTY_ROOT_ID";
+
     private static String sessionId = UUID.randomUUID().toString();
 
     public static void invalidateSession() {
@@ -61,7 +65,12 @@ public class MediaService extends MediaBrowserServiceCompat {
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
         String rootId = MediaBrowserHelper.ROOT_ID + "?_sid=" + sessionId;
-        L.i("onGetRoot: " + rootId + ", client: " + clientPackageName);
+        L.i("onGetRoot: " + rootId + ", client: " + clientPackageName + ", root hints: " + rootHints);
+        if (rootHints != null) {
+            if (rootHints.getBoolean(BrowserRoot.EXTRA_RECENT, false)) {
+                return new BrowserRoot(EMPTY_ROOT, null);
+            }
+        }
         return new BrowserRoot(rootId, null);
     }
 
@@ -76,13 +85,12 @@ public class MediaService extends MediaBrowserServiceCompat {
     public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
         L.i("onLoadChildren: " + parentId);
         result.detach();
-        MediaBrowserHelper.loadChildrenFromService(this, d().repository(), withSessionId(parentId), children -> doSendResults(children, result));
-    }
 
-    @Override
-    public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result, @NonNull Bundle options) {
-        L.i("onLoadChildren: " + parentId + "options:" + options);
-        super.onLoadChildren(parentId, result, options);
+        if (EMPTY_ROOT.equals(parentId)) {
+            result.sendResult(Collections.emptyList());
+        } else {
+            MediaBrowserHelper.loadChildrenFromService(this, d().repository(), withSessionId(parentId), children -> doSendResults(children, result));
+        }
     }
 
     private void doSendResults(List<MediaBrowserCompat.MediaItem> children, Result<List<MediaBrowserCompat.MediaItem>> result) {
