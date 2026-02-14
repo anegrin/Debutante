@@ -116,7 +116,7 @@ dependencies {
 
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.preference:preference:1.2.1'
-    implementation 'androidx.media:media:1.6.0'
+    implementation 'androidx.media:media:1.7.1'
     implementation 'androidx.mediarouter:mediarouter:1.8.1'
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.annotation:annotation:1.9.1'

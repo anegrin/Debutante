@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +28,7 @@ import io.github.debutante.persistence.PlayerState;
 import io.github.debutante.persistence.entities.AccountEntity;
 import io.github.debutante.persistence.entities.SongEntity;
 import io.github.debutante.service.HTTPDService;
+import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.functions.Consumer;
 
@@ -42,6 +44,15 @@ public class PlayerPreparer {
         this.playerWrapper = playerWrapper;
         this.repository = repository;
         this.appConfig = appConfig;
+    }
+
+    public void prepare(Action onComplete, Consumer<? super Throwable> onError) {
+        RxHelper.defaultInstance().subscribe(Completable.fromRunnable(() -> {
+            Player player = playerWrapper.player();
+            player.setPlayWhenReady(false);
+            player.setMediaItems(Collections.emptyList());
+            player.prepare();
+        }), onComplete, onError);
     }
 
     public void prepare(MediaBrowserCompat.MediaItem parentMediaItem,

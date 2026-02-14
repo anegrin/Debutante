@@ -56,9 +56,14 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
         Optional<Pair<MediaBrowserCompat.MediaItem, List<MediaBrowserCompat.MediaItem>>> mediaItems = PlayerState.loadMediaItems(context, Optional.empty());
         Optional<String> currentMediaItemId = PlayerState.loadCurrentMediaItemId(context, Optional.empty());
 
-        mediaItems.ifPresent(p -> playerWrapper.newPlayerPreparer().prepare(p.getKey(), p.getValue(), currentMediaItemId.orElse(null), () -> {
-                }, Throwable::printStackTrace, playWhenReady, false)
-        );
+        if (mediaItems.isPresent()) {
+            Pair<MediaBrowserCompat.MediaItem, List<MediaBrowserCompat.MediaItem>> p = mediaItems.get();
+            playerWrapper.newPlayerPreparer().prepare(p.getKey(), p.getValue(), currentMediaItemId.orElse(null), () -> {
+            }, Throwable::printStackTrace, playWhenReady, false);
+        } else {
+            playerWrapper.newPlayerPreparer().prepare(() -> {
+            }, Throwable::printStackTrace);
+        }
     }
 
     private void onPrepare(String accountUuid, boolean playWhenReady) {

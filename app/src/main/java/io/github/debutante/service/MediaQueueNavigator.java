@@ -47,8 +47,9 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
 
     @Override
     public MediaDescriptionCompat getMediaDescription(Player player, int windowIndex) {
-
         MediaItem mediaItem = player.getMediaItemAt(windowIndex);
+
+        L.d("Getting media description for window index: " + windowIndex);
 
         Bundle extras = new Bundle();
 

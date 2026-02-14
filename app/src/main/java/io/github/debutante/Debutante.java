@@ -90,7 +90,7 @@ public class Debutante extends Application {
     private final Object PICASSO_LOCK = new Object();
     private AppConfig appConfig;
 
-    public static final String TAG = L_D ? "Debugante" :  "Debutante";
+    public static final String TAG = L_D ? "Debugante" : "Debutante";
     public static final String NOTIFICATION_CHANNEL_ID = TAG;
     public static final int NOTIFICATION_ID = 2112;
     public static final Requirements DOWNLOAD_REQUIREMENTS_DEFAULT = new Requirements(Requirements.NETWORK);
@@ -356,9 +356,8 @@ public class Debutante extends Application {
 
         mediaSession = new MediaSessionCompat(getApplicationContext(), getApplicationContext().getString(R.string.app_name));
         playerWrapper = new PlayerWrapper(this, exoPlayer, castPlayer, repository, appConfig);
-        mediaSession.setActive(true);
+        mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
         mediaSession.setSessionActivity(PendingIntent.getActivity(getApplicationContext(), BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(getApplicationContext(), MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
-        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PAUSED, 0, 1.0f).build());
 
         MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
             MediaPlaybackPreparer playbackPreparer = new MediaPlaybackPreparer(getApplicationContext(), playerWrapper, repository);
@@ -366,6 +365,7 @@ public class Debutante extends Application {
             m.setPlaybackPreparer(playbackPreparer);
             m.setQueueNavigator(queueNavigator);
             m.setPlayer(playerWrapper.player());
+            playbackPreparer.onPrepare(false);
         });
 
 
@@ -376,13 +376,16 @@ public class Debutante extends Application {
         exoPlayer.addListener(new ExoPlayerListener(getApplicationContext(), exoPlayer, downloadManager, playerNotificationManager, appConfig.getSongsToPreload(), playerWrapper));
         castPlayer.addListener(new CastPlayerListener(getApplicationContext(), castPlayer, sharedInstance.getPrecacheManager(), mediaItemConverter, playerWrapper));
 
-        playerWrapper.player().prepare();
-
         registerReceiver(new SyncAccountBroadcastReceiver(okHttpClient, playerWrapper, gson, repository), Obj.tap(new IntentFilter(), f -> {
                     f.addAction(SyncAccountBroadcastReceiver.ACTION);
                     f.addAction(SyncAccountBroadcastReceiver.FORCE_STOP_ACTION);
                 }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
         );
+
+        PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder().setActiveQueueItemId(0).setBufferedPosition(0).setState(PlaybackStateCompat.STATE_STOPPED, 0, 1.0f).build();
+        L.i("Initial session state: " + playbackState);
+        mediaSession.setPlaybackState(playbackState);
+        mediaSession.setActive(true);
     }
 
     public AppConfig appConfig() {
