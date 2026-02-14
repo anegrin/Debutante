@@ -45,10 +45,11 @@ import io.github.debutante.persistence.entities.AlbumEntity;
 import io.github.debutante.persistence.entities.ArtistEntity;
 import io.github.debutante.persistence.entities.BaseEntity;
 import io.github.debutante.persistence.entities.SongEntity;
-import io.github.debutante.service.MediaService;
+import io.github.debutante.service.PlayerService;
 import io.github.debutante.service.SyncService;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import okhttp3.OkHttpClient;
@@ -409,7 +410,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
     private void waitForCompletion(Context context, BaseEntity parentEntity, Counters counters) {
         if (!counters.checking.getAndSet(true)) {
 
-            Completable.fromAction(() -> {
+            Disposable _ignore = Completable.fromAction(() -> {
                         long timeoutAt = System.currentTimeMillis() + TIMEOUT.toMillis();
                         boolean done = false;
                         while (!counters.done() && !done && System.currentTimeMillis() < timeoutAt && !forceStop.get()) {
@@ -425,7 +426,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
                         String mediaId = EntityHelper.mediaId(EntityHelper.mediaId(parentEntity), Collections.singletonMap(MediaBrowserHelper.PREPEND_ACTIONS, false));
                         BrowseMediaBroadcastReceiver.broadcast(context, mediaId);
                         context.stopService(new Intent(context, SyncService.class));
-                        MediaService.invalidateSession();
+                        PlayerService.invalidateSession();
                     }, Throwable::printStackTrace);
         }
     }
@@ -434,7 +435,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
         toast(context, context.getString(forceStop.get() ? R.string.fetch_aborted : R.string.fetch_success));
         running.set(false);
         forceStop.set(false);
-        MediaService.invalidateSession();
+        PlayerService.invalidateSession();
     }
 
     private Duration getRandomDelay() {

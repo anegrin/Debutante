@@ -5,10 +5,10 @@ import static io.github.debutante.BuildConfig.L_D;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.media.Session2Token;
+import android.media.session.MediaSessionManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -22,7 +22,6 @@ import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.database.StandaloneDatabaseProvider;
 import com.google.android.exoplayer2.ext.cast.CastPlayer;
-import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource;
 import com.google.android.exoplayer2.mediacodec.MediaCodecSelector;
 import com.google.android.exoplayer2.metadata.MetadataOutput;
@@ -30,7 +29,6 @@ import com.google.android.exoplayer2.offline.DownloadManager;
 import com.google.android.exoplayer2.scheduler.Requirements;
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
 import com.google.android.exoplayer2.text.TextOutput;
-import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSource;
 import com.google.android.exoplayer2.upstream.cache.Cache;
@@ -53,31 +51,20 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import io.github.debutante.adapter.AudioMediaItemConverter;
-import io.github.debutante.adapter.MediaDescriptionAdapter;
 import io.github.debutante.helper.DeviceHelper;
 import io.github.debutante.helper.L;
 import io.github.debutante.helper.Obj;
-import io.github.debutante.helper.PlayerWrapper;
 import io.github.debutante.helper.RxHelper;
 import io.github.debutante.helper.Scheduler;
-import io.github.debutante.listeners.CastPlayerListener;
-import io.github.debutante.listeners.CastSessionAvailabilityListener;
 import io.github.debutante.listeners.DynamicSizeCacheEvictor;
-import io.github.debutante.listeners.ExoPlayerListener;
-import io.github.debutante.listeners.MediaSessionNotificationListener;
 import io.github.debutante.model.AppConfig;
 import io.github.debutante.persistence.EntityRepository;
-import io.github.debutante.receivers.SyncAccountBroadcastReceiver;
-import io.github.debutante.service.BaseForegroundService;
-import io.github.debutante.service.MediaPlaybackPreparer;
-import io.github.debutante.service.MediaQueueNavigator;
 import okhttp3.Call;
-import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 
 public class Debutante extends Application {
@@ -99,10 +86,13 @@ public class Debutante extends Application {
     private MediaSessionCompat mediaSession;
     private EntityRepository repository;
     private DownloadManager downloadManager;
-    private PlayerWrapper playerWrapper;
     private Picasso picasso;
     private okhttp3.Cache picassoCache;
     private File cacheDir;
+    private ExoPlayer exoPlayer;
+    private CastPlayer castPlayer;
+    private CastContext sharedInstance;
+    private AudioMediaItemConverter mediaItemConverter;
 
     public Debutante() {
         super();
@@ -150,7 +140,7 @@ public class Debutante extends Application {
 
     @NonNull
     public static AppConfig loadAppConfig(@NonNull Context context) {
-        return new AppConfig(context.getApplicationContext());
+        return new AppConfig(context);
     }
 
     private synchronized AppConfig getAppConfig(@NonNull Context context) {
@@ -165,19 +155,6 @@ public class Debutante extends Application {
         Scheduler scheduler = new Scheduler(context);
         scheduler.scheduleSync(appConfig, false);
         return scheduler;
-    }
-
-    @NonNull
-    private static PlayerNotificationManager buildPlayerNotificationManager(Context context, PlayerWrapper playerWrapper, MediaSessionCompat mediaSession, Supplier<Picasso> picassoSupplier) {
-        return Obj.tap(new PlayerNotificationManager.Builder(context, NOTIFICATION_ID, createNotificationChannel(context, Debutante.NOTIFICATION_CHANNEL_ID))
-                .setMediaDescriptionAdapter(new MediaDescriptionAdapter(context, picassoSupplier))
-                .setNotificationListener(new MediaSessionNotificationListener(context, playerWrapper))
-                .build(), p -> {
-            p.setMediaSessionToken(mediaSession.getSessionToken());
-            p.setUseChronometer(true);
-            p.setUsePreviousActionInCompactView(true);
-            p.setUseNextActionInCompactView(true);
-        });
     }
 
     @NonNull
@@ -248,10 +225,6 @@ public class Debutante extends Application {
         return appConfig.isPreloadOnWiFiOnly() ? DOWNLOAD_REQUIREMENTS_WIFI : DOWNLOAD_REQUIREMENTS_DEFAULT;
     }
 
-    public MediaSessionCompat mediaSession() {
-        return mediaSession;
-    }
-
     public OkHttpClient okHttpClient() {
         return okHttpClient;
     }
@@ -264,24 +237,40 @@ public class Debutante extends Application {
         return repository;
     }
 
-    public PlayerWrapper playerWrapper() {
-        return playerWrapper;
-    }
-
     public DownloadManager downloadManager() {
         return downloadManager;
+    }
+
+    public ExoPlayer exoPlayer() {
+        return exoPlayer;
+    }
+
+    public CastPlayer castPlayer() {
+        return castPlayer;
+    }
+
+    public CastContext sharedInstance() {
+        return sharedInstance;
+    }
+
+    public AudioMediaItemConverter mediaItemConverter() {
+        return mediaItemConverter;
+    }
+
+    public File cacheDir() {
+        return cacheDir;
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
 
-        AppConfig appConfig = getAppConfig(getApplicationContext());
+        AppConfig appConfig = getAppConfig(this);
 
-        Scheduler scheduler = buildScheduler(getApplicationContext(), appConfig);
+        Scheduler scheduler = buildScheduler(this, appConfig);
         appConfig.addOnRefreshListeners(a -> scheduler.scheduleSync(a, true));
 
-        cacheDir = new File(getApplicationContext().getCacheDir(), COVER_ART_CACHE);
+        cacheDir = new File(this.getCacheDir(), COVER_ART_CACHE);
         Consumer<Long> listener = s -> {
             L.i("Initializing Picasso, coverArtCacheSize=" + s);
             if (!cacheDir.exists()) {
@@ -290,7 +279,7 @@ public class Debutante extends Application {
 
             picassoCache = new okhttp3.Cache(cacheDir, s);
             OkHttp3Downloader downloader = new OkHttp3Downloader(newOkHttpClientBuilder(appConfig).cache(picassoCache).build());
-            picasso = new Picasso.Builder(getApplicationContext()).indicatorsEnabled(L_D).downloader(downloader).build();
+            picasso = new Picasso.Builder(this).indicatorsEnabled(L_D).downloader(downloader).build();
         };
         listener.accept(appConfig.getCoverArtCacheSize());
 
@@ -309,22 +298,22 @@ public class Debutante extends Application {
         okHttpClient = newOkHttpClientBuilder(appConfig).build();
 
         gson = new GsonBuilder().create();
-        repository = new EntityRepository(getApplicationContext(), appConfig);
+        repository = new EntityRepository(this, appConfig);
 
-        StandaloneDatabaseProvider databaseProvider = buildStandaloneDatabaseProvider(getApplicationContext());
+        StandaloneDatabaseProvider databaseProvider = buildStandaloneDatabaseProvider(this);
         Cache downloadCache = buildDownloadCache(getCacheDir(), databaseProvider, appConfig);
 
-        DataSource.Factory cacheDataSourceFactory = buildCacheDataSourceFactory(getApplicationContext(), appConfig, downloadCache);
+        DataSource.Factory cacheDataSourceFactory = buildCacheDataSourceFactory(this, appConfig, downloadCache);
 
-        downloadManager = buildDownloadManager(getApplicationContext(), databaseProvider, downloadCache, cacheDataSourceFactory, appConfig);
+        downloadManager = buildDownloadManager(this, databaseProvider, downloadCache, cacheDataSourceFactory, appConfig);
 
         AudioAttributes audioAttributes = new AudioAttributes.Builder()
                 .setUsage(C.USAGE_MEDIA)
                 .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                 .build();
-        ExoPlayer exoPlayer = new ExoPlayer.Builder(getApplicationContext())
+        exoPlayer = new ExoPlayer.Builder(this)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(cacheDataSourceFactory))
-                .setRenderersFactory(new DefaultRenderersFactory(getApplicationContext()) {
+                .setRenderersFactory(new DefaultRenderersFactory(this) {
                     @Override
                     protected void buildVideoRenderers(Context context, int extensionRendererMode, MediaCodecSelector mediaCodecSelector, boolean enableDecoderFallback, Handler eventHandler, VideoRendererEventListener eventListener, long allowedVideoJoiningTimeMs, ArrayList<Renderer> out) {
                     }
@@ -349,42 +338,23 @@ public class Debutante extends Application {
 
         appConfig.addOnRefreshListeners(a -> exoPlayer.setHandleAudioBecomingNoisy(a.isHandleAudioBecomingNoisy()));
 
-        CastContext sharedInstance = CastContext.getSharedInstance(this);
-        AudioMediaItemConverter mediaItemConverter = new AudioMediaItemConverter();
-        final CastPlayer castPlayer = new CastPlayer(sharedInstance, mediaItemConverter);
+        sharedInstance = CastContext.getSharedInstance(this);
+        mediaItemConverter = new AudioMediaItemConverter();
+        castPlayer = new CastPlayer(sharedInstance, mediaItemConverter);
 
-        mediaSession = new MediaSessionCompat(getApplicationContext(), getApplicationContext().getString(R.string.app_name));
-        mediaSession.setActive(true);
-        playerWrapper = new PlayerWrapper(this, exoPlayer, castPlayer, repository, appConfig);
-        mediaSession.setSessionActivity(PendingIntent.getActivity(getApplicationContext(), BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(getApplicationContext(), MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        MediaSessionManager manager = (MediaSessionManager) this
+                .getSystemService(Context.MEDIA_SESSION_SERVICE);
 
-        MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
-            MediaPlaybackPreparer playbackPreparer = new MediaPlaybackPreparer(getApplicationContext(), playerWrapper, repository);
-            MediaQueueNavigator queueNavigator = new MediaQueueNavigator(getApplicationContext(), mediaSession, appConfig, s -> new File(cacheDir, okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1"));
-            m.setPlaybackPreparer(playbackPreparer);
-            m.setQueueNavigator(queueNavigator);
-            m.setPlayer(playerWrapper.player());
-            playbackPreparer.onPrepare(false);
-        });
-
-
-        castPlayer.setSessionAvailabilityListener(new CastSessionAvailabilityListener(getApplicationContext(), playerWrapper, mediaSessionConnector, appConfig));
-
-        PlayerNotificationManager playerNotificationManager = buildPlayerNotificationManager(getApplicationContext(), playerWrapper, mediaSession, this::picasso);
-
-        exoPlayer.addListener(new ExoPlayerListener(getApplicationContext(), exoPlayer, downloadManager, playerNotificationManager, appConfig.getSongsToPreload(), playerWrapper));
-        castPlayer.addListener(new CastPlayerListener(getApplicationContext(), castPlayer, sharedInstance.getPrecacheManager(), mediaItemConverter, playerWrapper));
-
-        registerReceiver(new SyncAccountBroadcastReceiver(okHttpClient, playerWrapper, gson, repository), Obj.tap(new IntentFilter(), f -> {
-                    f.addAction(SyncAccountBroadcastReceiver.ACTION);
-                    f.addAction(SyncAccountBroadcastReceiver.FORCE_STOP_ACTION);
-                }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
-        );
-
+        if (manager != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                List<Session2Token> session2Tokens = manager.getSession2Tokens();
+                session2Tokens.forEach(s -> L.i("sessions extra: " + s.getPackageName() + ", " + s.getExtras()));
+            }
+        }
     }
 
     public AppConfig appConfig() {
-        return getAppConfig(getApplicationContext());
+        return getAppConfig(this);
     }
 
     public Picasso picasso() {

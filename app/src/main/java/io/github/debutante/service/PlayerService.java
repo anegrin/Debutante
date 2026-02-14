@@ -1,24 +1,64 @@
 package io.github.debutante.service;
 
 import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK;
+import static io.github.debutante.service.BaseForegroundService.ACTION_STOP;
+import static io.github.debutante.service.BaseForegroundService.STOP_SERVICE_REQUEST_CODE;
+import static io.github.debutante.service.BaseForegroundService.buildNotification;
 
+import android.Manifest;
+import android.app.Notification;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.os.IBinder;
 import android.os.PowerManager;
+import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaDescriptionCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 
-import androidx.annotation.RequiresApi;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.media.MediaBrowserServiceCompat;
 
+import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
+import com.google.android.exoplayer2.ui.PlayerNotificationManager;
+import com.squareup.picasso.Picasso;
+
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.io.File;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import io.github.debutante.Debutante;
 import io.github.debutante.MainActivity;
 import io.github.debutante.R;
+import io.github.debutante.adapter.MediaDescriptionAdapter;
+import io.github.debutante.helper.DeviceHelper;
 import io.github.debutante.helper.L;
+import io.github.debutante.helper.MediaBrowserHelper;
+import io.github.debutante.helper.Obj;
 import io.github.debutante.helper.PlayerWrapper;
 import io.github.debutante.helper.Scheduler;
+import io.github.debutante.listeners.CastPlayerListener;
+import io.github.debutante.listeners.CastSessionAvailabilityListener;
+import io.github.debutante.listeners.ExoPlayerListener;
+import io.github.debutante.listeners.MediaSessionNotificationListener;
+import io.github.debutante.receivers.SyncAccountBroadcastReceiver;
+import okhttp3.HttpUrl;
 
-public class PlayerService extends BaseForegroundService {
+public class PlayerService extends MediaBrowserServiceCompat {
 
     public static final String ACTION_PAUSE = PlayerService.class.getSimpleName() + "-ACTION_PAUSE";
     public static final String ACTION_PLAY = PlayerService.class.getSimpleName() + "-ACTION_PLAY";
@@ -27,33 +67,186 @@ public class PlayerService extends BaseForegroundService {
     public static final String ACTION_PREPARE = PlayerService.class.getSimpleName() + "-ACTION_PREPARE";
 
     private static final Object GLOBAL_LOCK = new Object();
+    private static final String EMPTY_ROOT = "EMPTY_ROOT_ID";
     private PowerManager.WakeLock wakeLock;
+    private static String sessionId = UUID.randomUUID().toString();
+    private final AtomicBoolean startLock = new AtomicBoolean(false);
+    private final StopBroadcastReceiver stopBroadcastReceiver = new StopBroadcastReceiver();
+    private SyncAccountBroadcastReceiver syncAccountBroadcastReceiver;
+    private MediaSessionCompat mediaSession;
+    private PlayerWrapper playerWrapper;
+    private MediaSessionConnector mediaSessionConnector;
+    private ExoPlayerListener exoPlayerListener;
+    private CastPlayerListener castPlayerListener;
 
-    @RequiresApi(api = Build.VERSION_CODES.R)
-    public PlayerService() {
-        super(R.string.player_service_notification_content, NOTIFICATION_ID, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+    public static void invalidateSession() {
+        sessionId = Obj.tap(UUID.randomUUID().toString(), s -> L.d("Creating new session id: " + s));
     }
 
-    /*@Override
+    public static String currentSessionId() {
+        return sessionId;
+    }
+
+    private static PlayerNotificationManager buildPlayerNotificationManager(Context context, PlayerWrapper playerWrapper, MediaSessionCompat mediaSession, Supplier<Picasso> picassoSupplier) {
+        return Obj.tap(new PlayerNotificationManager.Builder(context, NOTIFICATION_ID, Debutante.createNotificationChannel(context, Debutante.NOTIFICATION_CHANNEL_ID))
+                .setMediaDescriptionAdapter(new MediaDescriptionAdapter(context, picassoSupplier))
+                .setNotificationListener(new MediaSessionNotificationListener(context, playerWrapper))
+                .build(), p -> {
+            p.setMediaSessionToken(mediaSession.getSessionToken());
+            p.setUseChronometer(true);
+            p.setUsePreviousActionInCompactView(true);
+            p.setUseNextActionInCompactView(true);
+        });
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        L.i("Binding to media service, action: " + Optional.ofNullable(intent).map(Intent::getAction).orElse("<none>"));
+
+        if (intent != null && PlayerService.class.getName().equals(intent.getAction())) {
+            return new LocalBinder<>(this);
+        }
+
+        return super.onBind(intent);
+    }
+
+    @Override
     public void onCreate() {
         super.onCreate();
-        bindService(new Intent("android.media.browse.MediaBrowserService").setPackage(getPackageName()), new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                L.i("MediaService: " + service);
-            }
+        L.i("Creating media service");
+        mediaSession = new MediaSessionCompat(this, getString(R.string.app_name));
+        mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
+        mediaSession.setActive(true);
+        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setActions(PlaybackStateCompat.ACTION_PREPARE).setState(PlaybackStateCompat.STATE_PAUSED, 0, 1.0f).build());
+        playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
+        mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
 
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
+        mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
+            m.setPlayer(playerWrapper.player());
+            MediaQueueNavigator queueNavigator = new MediaQueueNavigator(this, mediaSession, d().appConfig(), s -> new File(d().cacheDir(), okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1"));
+            m.setQueueNavigator(queueNavigator);
+            MediaPlaybackPreparer playbackPreparer = new MediaPlaybackPreparer(this, playerWrapper, d().repository());
+            m.setPlaybackPreparer(playbackPreparer);
+            playerWrapper.player().setPlayWhenReady(false);
+            playerWrapper.player().prepare();
+        });
+        PlayerNotificationManager playerNotificationManager = buildPlayerNotificationManager(this, playerWrapper, mediaSession, d()::picasso);
 
+        exoPlayerListener = new ExoPlayerListener(this, d().exoPlayer(), d().downloadManager(), playerNotificationManager, d().appConfig().getSongsToPreload(), playerWrapper);
+        d().exoPlayer().addListener(exoPlayerListener);
+        castPlayerListener = new CastPlayerListener(this, d().castPlayer(), d().sharedInstance().getPrecacheManager(), d().mediaItemConverter(), playerWrapper);
+        d().castPlayer().addListener(castPlayerListener);
+
+        d().castPlayer().setSessionAvailabilityListener(new CastSessionAvailabilityListener(this, playerWrapper, mediaSessionConnector, d().appConfig()));
+
+        syncAccountBroadcastReceiver = new SyncAccountBroadcastReceiver(d().okHttpClient(), playerWrapper, d().gson(), d().repository());
+        registerReceiver(syncAccountBroadcastReceiver, Obj.tap(new IntentFilter(), f -> {
+                    f.addAction(SyncAccountBroadcastReceiver.ACTION);
+                    f.addAction(SyncAccountBroadcastReceiver.FORCE_STOP_ACTION);
+                }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
+        );
+
+
+        setSessionToken(mediaSession.getSessionToken());
+    }
+
+    public MediaSessionConnector mediaSessionConnector() {
+        return mediaSessionConnector;
+    }
+
+    public PlayerWrapper playerWrapper() {
+        return playerWrapper;
+    }
+
+    public MediaSessionCompat mediaSession() {
+        return mediaSession;
+    }
+
+    @Nullable
+    @Override
+    public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
+        String rootId = MediaBrowserHelper.ROOT_ID + "?_sid=" + sessionId;
+        L.i("onGetRoot: " + rootId + ", client: " + clientPackageName + ", root hints: " + rootHints);
+        if (rootHints != null) {
+            if (rootHints.getBoolean(BrowserRoot.EXTRA_RECENT, false)) {
+                return new BrowserRoot(EMPTY_ROOT, null);
             }
-        }, BIND_NOT_FOREGROUND);
-    }*/
+        }
+        return new BrowserRoot(rootId, null);
+    }
+
+    @Override
+    public void onLoadItem(String itemId, @NonNull Result<MediaBrowserCompat.MediaItem> result) {
+        L.i("onLoadItem: " + itemId);
+        result.detach();
+        MediaBrowserHelper.loadFromService(this, d().repository(), withSessionId(itemId), result::sendResult);
+    }
+
+    @Override
+    public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
+        L.i("onLoadChildren: " + parentId);
+        result.detach();
+
+        if (EMPTY_ROOT.equals(parentId)) {
+            result.sendResult(Collections.emptyList());
+        } else {
+            MediaBrowserHelper.loadChildrenFromService(this, d().repository(), withSessionId(parentId), children -> doSendResults(children, result));
+        }
+    }
+
+    private void doSendResults(List<MediaBrowserCompat.MediaItem> children, Result<List<MediaBrowserCompat.MediaItem>> result) {
+        L.d("doSendResults, items count: " + CollectionUtils.size(children));
+        String permission = DeviceHelper.requireSpecificReadAudioPermissions() ? Manifest.permission.READ_MEDIA_AUDIO : Manifest.permission.READ_EXTERNAL_STORAGE;
+        int checkResult = checkSelfPermission(permission);
+        if (checkResult != PackageManager.PERMISSION_GRANTED || !d().appConfig().isAccountsLocalEnabled()) {
+            result.sendResult(children.stream().filter(MediaBrowserHelper::isNotLocalAccount).map(this::decorateTitle).collect(Collectors.toList()));
+        } else {
+            result.sendResult(children.stream().map(this::decorateTitle).collect(Collectors.toList()));
+        }
+    }
+
+    private MediaBrowserCompat.MediaItem decorateTitle(MediaBrowserCompat.MediaItem mediaItem) {
+        if (d().appConfig().isCarTextIconsEnabled()) {
+
+            return new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
+                    .setMediaId(mediaItem.getDescription().getMediaId())
+                    .setTitle(MediaBrowserHelper.getUTF8CharForIconUri(mediaItem.getDescription().getIconUri()) + " " + mediaItem.getDescription().getTitle())
+                    .setDescription(mediaItem.getDescription().getDescription())
+                    .build(), mediaItem.getFlags());
+        } else {
+            return mediaItem;
+        }
+    }
+
+    @NonNull
+    private String withSessionId(@NonNull String parentId) {
+        if (!parentId.contains("_sid=")) {
+            parentId += parentId.contains("?") ? "&_sid=" + sessionId : "?_sid=" + sessionId;
+        }
+        return parentId;
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         synchronized (GLOBAL_LOCK) {
-            L.i("Starting foreground player service");
+            int startCommand = super.onStartCommand(intent, flags, startId);
+
+            if (!startLock.getAndSet(true)) {
+                L.i("Registering stop service receiver");
+                registerReceiver(stopBroadcastReceiver, new IntentFilter(ACTION_STOP), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
+                PendingIntent deleteIntent = PendingIntent.getBroadcast(this, STOP_SERVICE_REQUEST_CODE, new Intent(ACTION_STOP), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+                Notification notification = buildNotification(this, getActivityIntent(), R.string.player_service_notification_content, false, deleteIntent);
+
+                if (DeviceHelper.needsForegroundServiceTypeOnStart()) {
+                    startForeground(NOTIFICATION_ID, notification, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+                } else {
+                    startForeground(NOTIFICATION_ID, notification);
+                }
+
+                new Scheduler(this).scheduleWatchdog();
+                L.i("Starting foreground player service, action: " + Optional.ofNullable(intent).map(Intent::getAction).orElse("<none>"));
+            }
 
             if (wakeLock == null) {
                 PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
@@ -61,14 +254,10 @@ public class PlayerService extends BaseForegroundService {
                         Debutante.TAG + "::" + getClass().getSimpleName());
             }
 
-            new Scheduler(this).scheduleWatchdog();
+            mediaSession.setActive(!playerWrapper.isCasting());
 
-            int startCommand = super.onStartCommand(intent, flags, startId);
-
-            PlayerWrapper playerWrapper = d().playerWrapper();
-            d().mediaSession().setActive(!playerWrapper.isCasting());
-
-            if (ACTION_WAKE.equals(intent.getAction())) {
+            String action = intent != null ? intent.getAction() : null;
+            if (ACTION_WAKE.equals(action)) {
                 releaseLock();
                 try {
                     Thread.sleep(1000);
@@ -76,9 +265,9 @@ public class PlayerService extends BaseForegroundService {
                     Thread.currentThread().interrupt();
                 }
                 acquireLock();
-            } else if (ACTION_PAUSE.equals(intent.getAction())) {
+            } else if (ACTION_PAUSE.equals(action)) {
                 releaseLock();
-            } else if (ACTION_PLAY.equals(intent.getAction())) {
+            } else if (ACTION_PLAY.equals(action)) {
                 releaseLock();
                 L.i("Active player (play): " + playerWrapper.activePlayer().getClass().getSimpleName());
                 playerWrapper.activePlayer().play();
@@ -87,7 +276,7 @@ public class PlayerService extends BaseForegroundService {
                     playerWrapper.inactivePlayer().pause();
                 }
                 acquireLock();
-            } else if (ACTION_PREPARE.equals(intent.getAction())) {
+            } else if (ACTION_PREPARE.equals(action)) {
                 releaseLock();
                 L.i("Active player (prepare): " + playerWrapper.activePlayer().getClass().getSimpleName());
                 playerWrapper.activePlayer().prepare();
@@ -104,10 +293,39 @@ public class PlayerService extends BaseForegroundService {
     }
 
     @Override
+    public boolean stopService(Intent name) {
+        return Obj.tap(super.stopService(name), r -> unregisterReceiver());
+    }
+
+    @Override
     public void onDestroy() {
         L.i("Stopping foreground player service");
+        unregisterReceiver();
+        d().exoPlayer().removeListener(exoPlayerListener);
+        d().castPlayer().removeListener(castPlayerListener);
+        d().castPlayer().setSessionAvailabilityListener(null);
+        unregisterReceiver(syncAccountBroadcastReceiver);
+        mediaSession.release();
         releaseLock();
         super.onDestroy();
+    }
+
+    private void unregisterReceiver() {
+        if (startLock.getAndSet(false)) {
+            L.i("Unregistering stop service receiver");
+            unregisterReceiver(stopBroadcastReceiver);
+        }
+    }
+
+    protected void doStopSelf() {
+        unregisterReceiver();
+        stopSelf();
+    }
+
+    private Optional<Intent> getActivityIntent() {
+        Intent activityIntent = new Intent(this, MainActivity.class);
+        activityIntent.putExtra(MainActivity.OPEN_PLAYER_KEY, true);
+        return Optional.of(activityIntent);
     }
 
     private void releaseLock() {
@@ -116,10 +334,16 @@ public class PlayerService extends BaseForegroundService {
         }
     }
 
-    @Override
-    protected Optional<Intent> getActivityIntent() {
-        Intent activityIntent = new Intent(this, MainActivity.class);
-        activityIntent.putExtra(MainActivity.OPEN_PLAYER_KEY, true);
-        return Optional.of(activityIntent);
+    private Debutante d() {
+        return (Debutante) getApplication();
+    }
+
+    private final class StopBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            L.i("Stopping " + PlayerService.this.getClass().getSimpleName() + " service");
+            doStopSelf();
+        }
     }
 }

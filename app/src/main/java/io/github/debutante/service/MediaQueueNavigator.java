@@ -54,10 +54,11 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
         extras.putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, mediaItem.mediaId);
 
         if (mediaItem.mediaMetadata.trackNumber != null) {
-            extras.putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, mediaItem.mediaMetadata.trackNumber);
+            extras.putInt(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, mediaItem.mediaMetadata.trackNumber);
+            extras.putInt(MediaMetadataCompat.METADATA_KEY_NUM_TRACKS, player.getMediaItemCount());
         }
         if (mediaItem.mediaMetadata.discNumber != null) {
-            extras.putLong(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, mediaItem.mediaMetadata.discNumber);
+            extras.putInt(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, mediaItem.mediaMetadata.discNumber);
         }
 
         if (mediaItem.mediaMetadata.extras != null) {

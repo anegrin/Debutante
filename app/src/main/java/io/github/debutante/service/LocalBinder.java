@@ -9,7 +9,7 @@ public class LocalBinder<T> extends Binder {
         this.service = service;
     }
 
-    T getService() {
+    public T getService() {
         return service;
     }
 }

@@ -1,7 +1,10 @@
 package io.github.debutante.service;
 
 import android.app.Service;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.IBinder;
 
 import androidx.annotation.Nullable;
@@ -39,18 +42,36 @@ public class InitService extends Service {
             } else if (ACTION_PLAY.equals(action)) {
 
                 L.d("Autoplay on Bluetooth is enabled");
-                PlayerWrapper playerWrapper = d().playerWrapper();
 
-                Player player = playerWrapper.player();
-                if (!playerWrapper.isCasting() && !player.isPlaying()) {
-                    if (d().mediaSession().isActive()) {
-                        L.i("Resuming current media session");
-                        player.play();
-                    } else {
-                        L.i("Resuming last media session");
-                        new MediaPlaybackPreparer(this, playerWrapper, d().repository()).onPrepare(true);
+                Intent serviceIntent = new Intent(this, PlayerService.class).setAction(PlayerService.class.getName());
+
+                final ServiceConnection serviceConnection = new ServiceConnection() {
+                    @Override
+                    public void onServiceConnected(ComponentName name, IBinder service) {
+                        PlayerService playerService = ((LocalBinder<PlayerService>) service).getService();
+                        PlayerWrapper playerWrapper = playerService.playerWrapper();
+
+                        Player player = playerWrapper.player();
+                        if (!playerWrapper.isCasting() && !player.isPlaying()) {
+                            if (playerService.mediaSession().isActive()) {
+                                L.i("Resuming current media session");
+                                player.play();
+                            } else {
+                                L.i("Resuming last media session");
+                                new MediaPlaybackPreparer(InitService.this, playerWrapper, d().repository()).onPrepare(true);
+                            }
+                        }
+                        unbindService(this);
                     }
-                }
+
+                    @Override
+                    public void onServiceDisconnected(ComponentName name) {
+
+                    }
+                };
+
+                bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+
             }
 
         }
