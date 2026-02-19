@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Handler;
 import android.os.IBinder;
 
 import androidx.annotation.Nullable;
@@ -45,20 +46,24 @@ public class InitService extends Service {
 
                 Intent serviceIntent = new Intent(this, PlayerService.class).setAction(PlayerService.class.getName());
 
+                final Handler handler = new Handler(getMainLooper());
                 final ServiceConnection serviceConnection = new ServiceConnection() {
                     @Override
                     public void onServiceConnected(ComponentName name, IBinder service) {
                         PlayerService playerService = ((LocalBinder<PlayerService>) service).getService();
                         PlayerWrapper playerWrapper = playerService.playerWrapper();
 
-                        Player player = playerWrapper.player();
+                        final Player player = playerWrapper.player();
                         if (!playerWrapper.isCasting() && !player.isPlaying()) {
-                            if (playerService.mediaSession().isActive()) {
+                            if (playerService.mediaSession().isActive() && playerService.startedOnce()) {
                                 L.i("Resuming current media session");
-                                player.play();
+                                handler.post(player::play);
                             } else {
                                 L.i("Resuming last media session");
-                                new MediaPlaybackPreparer(InitService.this, playerWrapper, d().repository()).onPrepare(true);
+                                handler.post(() -> {
+                                    player.prepare();
+                                    player.play();
+                                });
                             }
                         }
                         unbindService(this);

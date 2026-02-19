@@ -47,6 +47,7 @@ public class PlayerPreparer {
     }
 
     public void prepare(Action onComplete, Consumer<? super Throwable> onError) {
+        L.i("prepare");
         RxHelper.defaultInstance().subscribe(Completable.fromRunnable(() -> {
             Player player = playerWrapper.player();
             player.setPlayWhenReady(false);
@@ -83,7 +84,7 @@ public class PlayerPreparer {
                         boolean playWhenReady,
                         boolean saveSate) {
 
-        L.i("preaparing player;  parentMediaItem=" + Optional.ofNullable(parentMediaItem).map(MediaBrowserCompat.MediaItem::getMediaId).orElse(null)
+        L.i("preparing player;  parentMediaItem=" + Optional.ofNullable(parentMediaItem).map(MediaBrowserCompat.MediaItem::getMediaId).orElse(null)
                 + ", mediaItems.size=" + CollectionUtils.size(mediaItems)
                 + ", mediaItemId=" + mediaItemId
                 + ", startPositionMs=" + startPositionMs

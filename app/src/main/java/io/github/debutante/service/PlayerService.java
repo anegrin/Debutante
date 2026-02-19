@@ -78,6 +78,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
     private MediaSessionConnector mediaSessionConnector;
     private ExoPlayerListener exoPlayerListener;
     private CastPlayerListener castPlayerListener;
+    private boolean startedOnce = false;
 
     public static void invalidateSession() {
         sessionId = Obj.tap(UUID.randomUUID().toString(), s -> L.d("Creating new session id: " + s));
@@ -127,7 +128,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
             m.setQueueNavigator(queueNavigator);
             MediaPlaybackPreparer playbackPreparer = new MediaPlaybackPreparer(this, playerWrapper, d().repository());
             m.setPlaybackPreparer(playbackPreparer);
-            playerWrapper.player().setPlayWhenReady(false);
             playerWrapper.player().prepare();
         });
         PlayerNotificationManager playerNotificationManager = buildPlayerNotificationManager(this, playerWrapper, mediaSession, d()::picasso);
@@ -276,6 +276,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
                     playerWrapper.inactivePlayer().pause();
                 }
                 acquireLock();
+                startedOnce = true;
             } else if (ACTION_PREPARE.equals(action)) {
                 releaseLock();
                 L.i("Active player (prepare): " + playerWrapper.activePlayer().getClass().getSimpleName());
@@ -283,9 +284,12 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 acquireLock();
             }
 
-
             return startCommand;
         }
+    }
+
+    public boolean startedOnce() {
+        return startedOnce;
     }
 
     private void acquireLock() {
