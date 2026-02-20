@@ -14,17 +14,20 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
+import android.view.KeyEvent;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media.MediaBrowserServiceCompat;
 
+import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
 import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.squareup.picasso.Picasso;
@@ -62,6 +65,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
 
     public static final String ACTION_PAUSE = PlayerService.class.getSimpleName() + "-ACTION_PAUSE";
     public static final String ACTION_PLAY = PlayerService.class.getSimpleName() + "-ACTION_PLAY";
+    public static final String ACTION_MEDIA_BUTTON = "android.intent.action.MEDIA_BUTTON";
     public static final String ACTION_WAKE = PlayerService.class.getSimpleName() + "-ACTION_WAKE";
     private static final int NOTIFICATION_ID = Debutante.NOTIFICATION_ID - 1;
     public static final String ACTION_PREPARE = PlayerService.class.getSimpleName() + "-ACTION_PREPARE";
@@ -79,6 +83,8 @@ public class PlayerService extends MediaBrowserServiceCompat {
     private ExoPlayerListener exoPlayerListener;
     private CastPlayerListener castPlayerListener;
     private boolean startedOnce = false;
+    private NullSafeMediaMetadataProvider nullSafeMediaMetadataProvider;
+    private MediaPlaybackPreparer playbackPreparer;
 
     public static void invalidateSession() {
         sessionId = Obj.tap(UUID.randomUUID().toString(), s -> L.d("Creating new session id: " + s));
@@ -118,16 +124,16 @@ public class PlayerService extends MediaBrowserServiceCompat {
         mediaSession = new MediaSessionCompat(this, getString(R.string.app_name));
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
         mediaSession.setActive(true);
-        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setActions(PlaybackStateCompat.ACTION_PREPARE).setState(PlaybackStateCompat.STATE_PAUSED, 0, 1.0f).build());
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
         mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
-
+        nullSafeMediaMetadataProvider = new NullSafeMediaMetadataProvider(mediaSession);
+        playbackPreparer = new MediaPlaybackPreparer(this, playerWrapper, d().repository());
         mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
             m.setPlayer(playerWrapper.player());
             MediaQueueNavigator queueNavigator = new MediaQueueNavigator(this, mediaSession, d().appConfig(), s -> new File(d().cacheDir(), okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1"));
             m.setQueueNavigator(queueNavigator);
-            MediaPlaybackPreparer playbackPreparer = new MediaPlaybackPreparer(this, playerWrapper, d().repository());
             m.setPlaybackPreparer(playbackPreparer);
+            m.setMediaMetadataProvider(nullSafeMediaMetadataProvider);
             playerWrapper.player().prepare();
         });
         PlayerNotificationManager playerNotificationManager = buildPlayerNotificationManager(this, playerWrapper, mediaSession, d()::picasso);
@@ -257,6 +263,13 @@ public class PlayerService extends MediaBrowserServiceCompat {
             mediaSession.setActive(!playerWrapper.isCasting());
 
             String action = intent != null ? intent.getAction() : null;
+
+            boolean playButtonPressed = false;
+            if (ACTION_MEDIA_BUTTON.equals(action)) {
+                KeyEvent keyEvent = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent.class);
+                playButtonPressed = keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY;
+            }
+
             if (ACTION_WAKE.equals(action)) {
                 releaseLock();
                 try {
@@ -267,10 +280,15 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 acquireLock();
             } else if (ACTION_PAUSE.equals(action)) {
                 releaseLock();
-            } else if (ACTION_PLAY.equals(action)) {
+            } else if (playButtonPressed || ACTION_PLAY.equals(action)) {
                 releaseLock();
-                L.i("Active player (play): " + playerWrapper.activePlayer().getClass().getSimpleName());
-                playerWrapper.activePlayer().play();
+                L.i("Active player (play): " + playerWrapper.activePlayer().getClass().getSimpleName() + ", prepare and play (from button: " + playButtonPressed + ")");
+                if (startedOnce) {
+                    playerWrapper.activePlayer().play();
+                } else {
+                    final Handler handler = new Handler(getMainLooper());
+                    handler.post(() -> playbackPreparer.onPrepare(true));
+                }
                 if (playerWrapper.inactivePlayer().isPlaying()) {
                     L.i("Inactive player (stop): " + playerWrapper.inactivePlayer().getClass().getSimpleName());
                     playerWrapper.inactivePlayer().pause();
@@ -348,6 +366,31 @@ public class PlayerService extends MediaBrowserServiceCompat {
         public void onReceive(Context context, Intent intent) {
             L.i("Stopping " + PlayerService.this.getClass().getSimpleName() + " service");
             doStopSelf();
+        }
+    }
+
+    private static class NullSafeMediaMetadataProvider implements MediaSessionConnector.MediaMetadataProvider {
+        private static final MediaMetadataCompat METADATA_EMPTY =
+                new MediaMetadataCompat.Builder().build();
+        private final MediaSessionConnector.DefaultMediaMetadataProvider defaultMediaMetadataProvider;
+        private final MediaSessionCompat mediaSession;
+
+        public NullSafeMediaMetadataProvider(MediaSessionCompat mediaSession) {
+            this.mediaSession = mediaSession;
+            defaultMediaMetadataProvider = new MediaSessionConnector.DefaultMediaMetadataProvider(mediaSession.getController(), null);
+        }
+
+        @Override
+        public MediaMetadataCompat getMetadata(Player player) {
+            if (mediaSession.getController().getPlaybackState() == null) {
+                return METADATA_EMPTY;
+            }
+            try {
+                return defaultMediaMetadataProvider.getMetadata(player);
+            } catch (Exception e) {
+                L.e("Error getting metadata", e);
+                return METADATA_EMPTY;
+            }
         }
     }
 }

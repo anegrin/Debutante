@@ -1,5 +1,6 @@
 package io.github.debutante.service;
 
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
@@ -7,8 +8,10 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.v4.media.session.PlaybackStateCompat;
 
 import androidx.annotation.Nullable;
+import androidx.media.session.MediaButtonReceiver;
 
 import com.google.android.exoplayer2.Player;
 
@@ -60,10 +63,15 @@ public class InitService extends Service {
                                 handler.post(player::play);
                             } else {
                                 L.i("Resuming last media session");
-                                handler.post(() -> {
-                                    player.prepare();
-                                    player.play();
-                                });
+                                PendingIntent pendingIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
+                                        InitService.this,
+                                        PlaybackStateCompat.ACTION_PLAY
+                                );
+                                try {
+                                    pendingIntent.send();
+                                } catch (PendingIntent.CanceledException e) {
+                                    L.e("Can't send pending intent", e);
+                                }
                             }
                         }
                         unbindService(this);
