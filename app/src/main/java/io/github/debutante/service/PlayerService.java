@@ -127,7 +127,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
         mediaSession = new MediaSessionCompat(this, getString(R.string.app_name));
         setSessionToken(mediaSession.getSessionToken());
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
-        mediaSession.setActive(true);
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
         mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
         nullSafeMediaMetadataProvider = new NullSafeMediaMetadataProvider(mediaSession);
@@ -156,7 +155,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
         );
 
-
+        mediaSession.setActive(true);
     }
 
     public MediaSessionConnector mediaSessionConnector() {
