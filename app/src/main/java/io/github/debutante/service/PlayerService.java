@@ -65,6 +65,7 @@ import okhttp3.HttpUrl;
 
 public class PlayerService extends MediaBrowserServiceCompat {
 
+    public static final String EXTRA_SESSION_ID = "io.github.debutante.SESSION_ID";
     public static final String ACTION_PAUSE = PlayerService.class.getSimpleName() + "-ACTION_PAUSE";
     public static final String ACTION_PLAY = PlayerService.class.getSimpleName() + "-ACTION_PLAY";
     public static final String ACTION_MEDIA_BUTTON = "android.intent.action.MEDIA_BUTTON";
@@ -173,14 +174,16 @@ public class PlayerService extends MediaBrowserServiceCompat {
     @Nullable
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
+        Bundle bundle = rootHints != null ? new Bundle(rootHints) : new Bundle();
+        bundle.putString(EXTRA_SESSION_ID, currentSessionId());
         String rootId = MediaBrowserHelper.ROOT_ID + "?_sid=" + sessionId;
         L.i("onGetRoot: " + rootId + ", client: " + clientPackageName + ", root hints: " + rootHints);
         if (rootHints != null) {
             if (rootHints.getBoolean(BrowserRoot.EXTRA_RECENT, false)) {
-                return new BrowserRoot(RECENT_ROOT, null);
+                return new BrowserRoot(RECENT_ROOT, bundle);
             }
         }
-        return new BrowserRoot(rootId, null);
+        return new BrowserRoot(rootId, bundle);
     }
 
     @Override
