@@ -124,8 +124,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
     public void onCreate() {
         super.onCreate();
         L.i("Creating media service");
-        mediaSession = new MediaSessionCompat(this, getString(R.string.app_name));
-        setSessionToken(mediaSession.getSessionToken());
+        mediaSession = new MediaSessionCompat(this, getClass().getName());
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
         mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
@@ -138,6 +137,9 @@ public class PlayerService extends MediaBrowserServiceCompat {
             m.setPlaybackPreparer(playbackPreparer);
             m.setMediaMetadataProvider(nullSafeMediaMetadataProvider);
             playerWrapper.player().prepare();
+            m.invalidateMediaSessionQueue();
+            m.invalidateMediaSessionMetadata();
+            m.invalidateMediaSessionPlaybackState();
         });
         PlayerNotificationManager playerNotificationManager = buildPlayerNotificationManager(this, playerWrapper, mediaSession, d()::picasso);
 
@@ -156,6 +158,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
         );
 
         mediaSession.setActive(true);
+        setSessionToken(mediaSession.getSessionToken());
     }
 
     public MediaSessionConnector mediaSessionConnector() {

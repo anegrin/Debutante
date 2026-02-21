@@ -120,7 +120,6 @@ dependencies {
     implementation 'androidx.mediarouter:mediarouter:1.8.1'
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.annotation:annotation:1.9.1'
-    implementation 'androidx.work:work-runtime:2.11.0'
 
     implementation 'commons-io:commons-io:2.15.1'
     implementation 'org.apache.commons:commons-lang3:3.14.0'
@@ -129,7 +128,7 @@ dependencies {
     implementation 'io.reactivex.rxjava3:rxjava:3.1.12'
     implementation 'com.google.code.gson:gson:2.10.1'
 
-    implementation 'com.google.android.gms:play-services-cast-framework:22.2.0'
+    implementation 'com.google.android.gms:play-services-cast-framework:22.3.0'
     implementation 'com.google.android.material:material:1.13.0'
 
     testImplementation 'junit:junit:4.13.2'
