@@ -125,6 +125,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
         super.onCreate();
         L.i("Creating media service");
         mediaSession = new MediaSessionCompat(this, getString(R.string.app_name));
+        setSessionToken(mediaSession.getSessionToken());
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
         mediaSession.setActive(true);
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
@@ -156,7 +157,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
         );
 
 
-        setSessionToken(mediaSession.getSessionToken());
     }
 
     public MediaSessionConnector mediaSessionConnector() {
