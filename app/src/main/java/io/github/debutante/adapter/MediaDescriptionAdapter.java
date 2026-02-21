@@ -43,7 +43,7 @@ public class MediaDescriptionAdapter implements PlayerNotificationManager.MediaD
     public PendingIntent createCurrentContentIntent(Player player) {
         Intent intent = new Intent(context, MainActivity.class);
         intent.putExtra(MainActivity.OPEN_PLAYER_KEY, true);
-        return PendingIntent.getActivity(context, OPEN_ACTIVITY_INTENT_REQUEST_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        return PendingIntent.getActivity(context, OPEN_ACTIVITY_INTENT_REQUEST_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
     }
 
     @Nullable

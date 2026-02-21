@@ -33,6 +33,7 @@ import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.squareup.picasso.Picasso;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.File;
 import java.time.Duration;
@@ -58,6 +59,7 @@ import io.github.debutante.listeners.CastPlayerListener;
 import io.github.debutante.listeners.CastSessionAvailabilityListener;
 import io.github.debutante.listeners.ExoPlayerListener;
 import io.github.debutante.listeners.MediaSessionNotificationListener;
+import io.github.debutante.persistence.PlayerState;
 import io.github.debutante.receivers.SyncAccountBroadcastReceiver;
 import okhttp3.HttpUrl;
 
@@ -71,7 +73,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
     public static final String ACTION_PREPARE = PlayerService.class.getSimpleName() + "-ACTION_PREPARE";
 
     private static final Object GLOBAL_LOCK = new Object();
-    private static final String EMPTY_ROOT = "EMPTY_ROOT_ID";
+    private static final String RECENT_ROOT = "RECENT_ROOT_ID";
     private PowerManager.WakeLock wakeLock;
     private static String sessionId = UUID.randomUUID().toString();
     private final AtomicBoolean startLock = new AtomicBoolean(false);
@@ -125,7 +127,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
         mediaSession.setActive(true);
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
-        mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
         nullSafeMediaMetadataProvider = new NullSafeMediaMetadataProvider(mediaSession);
         playbackPreparer = new MediaPlaybackPreparer(this, playerWrapper, d().repository());
         mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
@@ -175,7 +177,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
         L.i("onGetRoot: " + rootId + ", client: " + clientPackageName + ", root hints: " + rootHints);
         if (rootHints != null) {
             if (rootHints.getBoolean(BrowserRoot.EXTRA_RECENT, false)) {
-                return new BrowserRoot(EMPTY_ROOT, null);
+                return new BrowserRoot(RECENT_ROOT, null);
             }
         }
         return new BrowserRoot(rootId, null);
@@ -193,8 +195,14 @@ public class PlayerService extends MediaBrowserServiceCompat {
         L.i("onLoadChildren: " + parentId);
         result.detach();
 
-        if (EMPTY_ROOT.equals(parentId)) {
-            result.sendResult(Collections.emptyList());
+        if (RECENT_ROOT.equals(parentId)) {
+            Optional<Pair<MediaBrowserCompat.MediaItem, List<MediaBrowserCompat.MediaItem>>> mediaItems = PlayerState.loadMediaItems(this, Optional.empty());
+
+            if (mediaItems.isPresent()) {
+                doSendResults(mediaItems.get().getValue(), result);
+            } else {
+                result.sendResult(Collections.emptyList());
+            }
         } else {
             MediaBrowserHelper.loadChildrenFromService(this, d().repository(), withSessionId(parentId), children -> doSendResults(children, result));
         }
