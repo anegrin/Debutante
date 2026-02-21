@@ -3,6 +3,7 @@ package io.github.debutante.helper;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -38,8 +39,10 @@ public class PlayerPreparer {
     private final PlayerWrapper playerWrapper;
     private final EntityRepository repository;
     private final AppConfig appConfig;
+    private final Handler mh;
 
     PlayerPreparer(Context context, PlayerWrapper playerWrapper, EntityRepository repository, AppConfig appConfig) {
+        mh = new Handler(context.getMainLooper());
         this.context = context;
         this.playerWrapper = playerWrapper;
         this.repository = repository;
@@ -49,10 +52,12 @@ public class PlayerPreparer {
     public void prepare(Action onComplete, Consumer<? super Throwable> onError) {
         L.i("prepare");
         RxHelper.defaultInstance().subscribe(Completable.fromRunnable(() -> {
-            Player player = playerWrapper.player();
-            player.setPlayWhenReady(false);
-            player.setMediaItems(Collections.emptyList());
-            player.prepare();
+            mh.post(() -> {
+                Player player = playerWrapper.player();
+                player.setPlayWhenReady(false);
+                player.setMediaItems(Collections.emptyList());
+                player.prepare();
+            });
         }), onComplete, onError);
     }
 
@@ -146,17 +151,24 @@ public class PlayerPreparer {
                 PlayerState.persistCurrentMediaItemId(context, a.uuid(), mediaItemId);
             }
 
-            Player player = playerWrapper.player();
-            player.setPlayWhenReady(playWhenReady);
-            player.setMediaItems(items, windowIndex, startPositionMs);
-            if (player.getAvailableCommands().contains(Player.COMMAND_SET_PLAYLIST_METADATA)) {
-                player.setPlaylistMetadata(new MediaMetadata.Builder()
-                        .setTotalTrackCount(items.size())
-                        .build());
-            }
-            player.prepare();
+            final int fWindowIndex = windowIndex;
+            mh.post(() -> {
+                Player player = playerWrapper.player();
+                player.setPlayWhenReady(playWhenReady);
+                player.setMediaItems(items, fWindowIndex, startPositionMs);
+                if (player.getAvailableCommands().contains(Player.COMMAND_SET_PLAYLIST_METADATA)) {
+                    player.setPlaylistMetadata(new MediaMetadata.Builder()
+                            .setTotalTrackCount(items.size())
+                            .build());
+                }
+                player.prepare();
 
-            onComplete.run();
+                try {
+                    onComplete.run();
+                } catch (Throwable e) {
+                    L.e("fail to run " + onComplete, e);
+                }
+            });
         }, onError);
     }
 

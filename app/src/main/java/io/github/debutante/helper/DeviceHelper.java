@@ -7,6 +7,10 @@ public final class DeviceHelper {
     private DeviceHelper() {
     }
 
+    public static boolean hasTypeSafeGetParcelableExtra() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
+    }
+
     public static boolean requireSpecificReadAudioPermissions() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
     }

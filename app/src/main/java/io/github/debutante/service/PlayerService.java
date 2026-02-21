@@ -274,8 +274,8 @@ public class PlayerService extends MediaBrowserServiceCompat {
 
             boolean playButtonPressed = false;
             if (ACTION_MEDIA_BUTTON.equals(action)) {
-                KeyEvent keyEvent = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent.class);
-                playButtonPressed = keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY;
+                KeyEvent keyEvent = DeviceHelper.hasTypeSafeGetParcelableExtra() ? intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent.class) : intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+                playButtonPressed = keyEvent != null && keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY;
             }
 
             if (ACTION_WAKE.equals(action)) {
