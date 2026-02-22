@@ -21,11 +21,13 @@ import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.KeyEvent;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media.MediaBrowserServiceCompat;
+import androidx.media.session.MediaButtonReceiver;
 
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
@@ -124,7 +126,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
     public void onCreate() {
         super.onCreate();
         L.i("Creating media service");
-        mediaSession = new MediaSessionCompat(this, getClass().getName());
+        mediaSession = new MediaSessionCompat(this, Debutante.TAG);
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
         mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
@@ -157,8 +159,9 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
         );
 
-        mediaSession.setActive(true);
+        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_NONE, 0, 1.0f).build());
         setSessionToken(mediaSession.getSessionToken());
+        mediaSession.setActive(true);
     }
 
     public MediaSessionConnector mediaSessionConnector() {
@@ -247,6 +250,9 @@ public class PlayerService extends MediaBrowserServiceCompat {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null) {
+            L.i("PlayerService.onStartCommand: " + intent.getAction() + " " + L.toString(intent.getExtras()));
+        }
         synchronized (GLOBAL_LOCK) {
             int startCommand = super.onStartCommand(intent, flags, startId);
 
@@ -281,6 +287,9 @@ public class PlayerService extends MediaBrowserServiceCompat {
             if (ACTION_MEDIA_BUTTON.equals(action)) {
                 KeyEvent keyEvent = DeviceHelper.hasTypeSafeGetParcelableExtra() ? intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent.class) : intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
                 playButtonPressed = keyEvent != null && keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY;
+                if (!playButtonPressed) {
+                    MediaButtonReceiver.handleIntent(mediaSession, intent);
+                }
             }
 
             if (ACTION_WAKE.equals(action)) {
