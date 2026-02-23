@@ -21,13 +21,11 @@ import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.KeyEvent;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media.MediaBrowserServiceCompat;
-import androidx.media.session.MediaButtonReceiver;
 
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
@@ -159,7 +157,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
         );
 
-        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_NONE, 0, 1.0f).build());
         setSessionToken(mediaSession.getSessionToken());
         mediaSession.setActive(true);
     }
@@ -287,9 +284,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
             if (ACTION_MEDIA_BUTTON.equals(action)) {
                 KeyEvent keyEvent = DeviceHelper.hasTypeSafeGetParcelableExtra() ? intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent.class) : intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
                 playButtonPressed = keyEvent != null && keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY;
-                if (!playButtonPressed) {
-                    MediaButtonReceiver.handleIntent(mediaSession, intent);
-                }
             }
 
             if (ACTION_WAKE.equals(action)) {

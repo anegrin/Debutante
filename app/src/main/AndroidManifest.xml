@@ -71,14 +71,6 @@
             </intent-filter>
         </service>
 
-        <receiver
-            android:name=".receivers.MediaButtonReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_BUTTON" />
-            </intent-filter>
-        </receiver>
-
         <service
             android:name=".service.MediaDownloadService"
             android:exported="false"
