@@ -127,23 +127,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
         L.i("Creating media service");
         mediaSession = new MediaSessionCompat(this, Debutante.TAG);
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
-        mediaSession.setFlags(
-                MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
-                        MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
-
-        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
-                .setActions(
-                        PlaybackStateCompat.ACTION_PLAY |
-                                PlaybackStateCompat.ACTION_PLAY_PAUSE).build());
-
-        // MySessionCallback() has methods that handle callbacks from a media controller
-        mediaSession.setCallback(new MediaSessionCompat.Callback() {
-
-        });
-
-        // Set the session's token so that client activities can communicate with it.
-        setSessionToken(mediaSession.getSessionToken());
-
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
         mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         nullSafeMediaMetadataProvider = new NullSafeMediaMetadataProvider(mediaSession);
@@ -175,7 +158,12 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
         );
 
-        //mediaSession.setActive(true);
+        mediaSession.setActive(true);
+        setSessionToken(mediaSession.getSessionToken());
+
+        new Handler(getMainLooper()).postDelayed(() -> {
+            mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_NONE, 0, 1.0f).build());
+        }, 500);
     }
 
     public PlayerWrapper playerWrapper() {
