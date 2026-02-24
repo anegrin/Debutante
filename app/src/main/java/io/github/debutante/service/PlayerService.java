@@ -21,6 +21,7 @@ import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.KeyEvent;
 
 import androidx.annotation.NonNull;
@@ -126,8 +127,25 @@ public class PlayerService extends MediaBrowserServiceCompat {
         L.i("Creating media service");
         mediaSession = new MediaSessionCompat(this, Debutante.TAG);
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
+        mediaSession.setFlags(
+                MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
+                        MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+
+        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
+                .setActions(
+                        PlaybackStateCompat.ACTION_PLAY |
+                                PlaybackStateCompat.ACTION_PLAY_PAUSE).build());
+
+        // MySessionCallback() has methods that handle callbacks from a media controller
+        mediaSession.setCallback(new MediaSessionCompat.Callback() {
+
+        });
+
+        // Set the session's token so that client activities can communicate with it.
+        setSessionToken(mediaSession.getSessionToken());
+
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
-        mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
+        mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         nullSafeMediaMetadataProvider = new NullSafeMediaMetadataProvider(mediaSession);
         playbackPreparer = new MediaPlaybackPreparer(this, playerWrapper, d().repository());
         mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
@@ -157,12 +175,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
         );
 
-        setSessionToken(mediaSession.getSessionToken());
-        mediaSession.setActive(true);
-    }
-
-    public MediaSessionConnector mediaSessionConnector() {
-        return mediaSessionConnector;
+        //mediaSession.setActive(true);
     }
 
     public PlayerWrapper playerWrapper() {
