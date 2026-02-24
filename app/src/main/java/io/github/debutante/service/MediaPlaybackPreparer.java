@@ -32,7 +32,11 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
     private static final long SUPPORTED_PREPARE_ACTIONS =
             PlaybackStateCompat.ACTION_PREPARE
                     | PlaybackStateCompat.ACTION_PREPARE_FROM_MEDIA_ID
-                    | PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID;
+                    | PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
+                    | PlaybackStateCompat.ACTION_PREPARE_FROM_SEARCH
+                    | PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH
+                    | PlaybackStateCompat.ACTION_PREPARE_FROM_URI
+                    | PlaybackStateCompat.ACTION_PLAY_FROM_URI;
     private final Context context;
     private final PlayerWrapper playerWrapper;
     private final EntityRepository repository;
@@ -99,10 +103,14 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromSearch(String query, boolean playWhenReady, @Nullable Bundle extras) {
+        playerWrapper.newPlayerPreparer().prepare(() -> {
+        }, Throwable::printStackTrace);
     }
 
     @Override
     public void onPrepareFromUri(Uri uri, boolean playWhenReady, @Nullable Bundle extras) {
+        playerWrapper.newPlayerPreparer().prepare(() -> {
+        }, Throwable::printStackTrace);
     }
 
     @Override

@@ -21,7 +21,6 @@ import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.KeyEvent;
 
 import androidx.annotation.NonNull;
@@ -158,12 +157,8 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
         );
 
-        mediaSession.setActive(true);
         setSessionToken(mediaSession.getSessionToken());
-
-        new Handler(getMainLooper()).postDelayed(() -> {
-            mediaSession.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_NONE, 0, 1.0f).build());
-        }, 500);
+        //mediaSession.setActive(true);
     }
 
     public PlayerWrapper playerWrapper() {
@@ -212,6 +207,19 @@ public class PlayerService extends MediaBrowserServiceCompat {
         } else {
             MediaBrowserHelper.loadChildrenFromService(this, d().repository(), withSessionId(parentId), children -> doSendResults(children, result));
         }
+    }
+
+    @Override
+    public void onSearch(@NonNull String query, Bundle extras, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
+        L.i("onSearch: " + query);
+        result.detach();
+        result.sendResult(Collections.emptyList());
+    }
+
+    @Override
+    public void onCustomAction(@NonNull String action, Bundle extras, @NonNull Result<Bundle> result) {
+        L.i("onCustomAction: " + action);
+        super.onCustomAction(action, extras, result);
     }
 
     private void doSendResults(List<MediaBrowserCompat.MediaItem> children, Result<List<MediaBrowserCompat.MediaItem>> result) {
