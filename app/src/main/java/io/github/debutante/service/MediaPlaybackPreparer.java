@@ -103,12 +103,14 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromSearch(String query, boolean playWhenReady, @Nullable Bundle extras) {
+        L.i("onPrepareFromSearch: " + query);
         playerWrapper.newPlayerPreparer().prepare(() -> {
         }, Throwable::printStackTrace);
     }
 
     @Override
     public void onPrepareFromUri(Uri uri, boolean playWhenReady, @Nullable Bundle extras) {
+        L.i("onPrepareFromUri: " + uri);
         playerWrapper.newPlayerPreparer().prepare(() -> {
         }, Throwable::printStackTrace);
     }
