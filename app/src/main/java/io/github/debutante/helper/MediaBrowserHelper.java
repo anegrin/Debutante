@@ -147,6 +147,32 @@ public class MediaBrowserHelper {
         }
     }
 
+    public static void searchFromService(Context context, EntityRepository repository, @NonNull String query, @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result) {
+        log("searchFromService, query=" + query);
+        Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(2));
+        search(context, repository, query, result, scheduler, scheduler, false);
+    }
+
+    public static void search(Context context, EntityRepository repository, @NonNull String query, @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result) {
+        search(context, repository, query, result, null, null, true);
+    }
+
+    private static void search(final Context context,
+                               EntityRepository repository,
+                               @NonNull String query,
+                               @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result,
+                               Scheduler subscribeOn,
+                               Scheduler observeOn,
+                               boolean withIcon) {
+        log("search, query=" + query);
+
+        if (StringUtils.isEmpty(query)) {
+            result.accept(Collections.emptyList());
+        }
+        sendResultAsync(context, result, () -> repository.findAlbumsByQuery(query), albumEntity -> toMediaItem(context, albumEntity, withIcon), null, subscribeOn, observeOn, withIcon);
+
+    }
+
     private static <T extends BaseEntity> void sendResultAsync(Context context,
                                                                Consumer<List<MediaBrowserCompat.MediaItem>> result,
                                                                Supplier<Single<List<T>>> loader,

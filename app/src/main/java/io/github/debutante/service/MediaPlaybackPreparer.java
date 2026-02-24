@@ -7,6 +7,7 @@ import android.os.ResultReceiver;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.Player;
@@ -89,34 +90,40 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
             onPrepare(mediaId.substring(MediaBrowserHelper.PREVIOUS_SESSION_ID.length()), playWhenReady);
         } else {
             MediaBrowserHelper.load(context, repository, mediaId, found -> {
-
-                EntityHelper.EntityMetadata metadata = EntityHelper.metadata(found.getMediaId());
-
-                String parentId = metadata.type == SongEntity.class ? EntityHelper.mediaId(new AlbumEntity(metadata.params.get(EntityHelper.EntityMetadata.PARENT_UUID_PARAM), metadata.accountUuid, null, null, null, 0, 0, null, 0, null)) : mediaId;
-                parentId = EntityHelper.mediaId(parentId, Collections.singletonMap(MediaBrowserHelper.PREPEND_ACTIONS, false));
-
-                MediaBrowserHelper.loadChildrenFromService(context, repository, parentId, children -> playerWrapper.newPlayerPreparer().prepare(found, children, mediaId, () -> {
-                }, Throwable::printStackTrace, playWhenReady));
+                onPrepareFromMediaIdResult(mediaId, playWhenReady, found);
             });
         }
     }
 
+    private void onPrepareFromMediaIdResult(String mediaId, boolean playWhenReady, MediaBrowserCompat.MediaItem result) {
+        EntityHelper.EntityMetadata metadata = EntityHelper.metadata(result.getMediaId());
+
+        String parentId = metadata.type == SongEntity.class ? EntityHelper.mediaId(new AlbumEntity(metadata.params.get(EntityHelper.EntityMetadata.PARENT_UUID_PARAM), metadata.accountUuid, null, null, null, 0, 0, null, 0, null)) : mediaId;
+        parentId = EntityHelper.mediaId(parentId, Collections.singletonMap(MediaBrowserHelper.PREPEND_ACTIONS, false));
+
+        MediaBrowserHelper.loadChildrenFromService(context, repository, parentId, children -> playerWrapper.newPlayerPreparer().prepare(result, children, mediaId, () -> {
+        }, Throwable::printStackTrace, playWhenReady));
+    }
+
     @Override
-    public void onPrepareFromSearch(String query, boolean playWhenReady, @Nullable Bundle extras) {
+    public void onPrepareFromSearch(@NonNull String query, boolean playWhenReady, @Nullable Bundle extras) {
         L.i("onPrepareFromSearch: " + query);
-        playerWrapper.newPlayerPreparer().prepare(() -> {
-        }, Throwable::printStackTrace);
+        MediaBrowserHelper.search(context, repository, query, found -> {
+            found.stream().findFirst().ifPresent(r -> {
+                onPrepareFromMediaIdResult(r.getMediaId(), playWhenReady, r);
+            });
+        });
     }
 
     @Override
-    public void onPrepareFromUri(Uri uri, boolean playWhenReady, @Nullable Bundle extras) {
+    public void onPrepareFromUri(@NonNull Uri uri, boolean playWhenReady, @Nullable Bundle extras) {
         L.i("onPrepareFromUri: " + uri);
-        playerWrapper.newPlayerPreparer().prepare(() -> {
-        }, Throwable::printStackTrace);
+
+        onPrepareFromMediaId(uri.toString(), playWhenReady, extras);
     }
 
     @Override
-    public boolean onCommand(Player player, String command, @Nullable Bundle extras, @Nullable ResultReceiver cb) {
+    public boolean onCommand(@NonNull Player player, @NonNull String command, @Nullable Bundle extras, @Nullable ResultReceiver cb) {
         L.d("onCommand: " + command);
         return false;
     }

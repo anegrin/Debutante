@@ -22,6 +22,9 @@ public interface AlbumDao {
     @Query("SELECT * FROM album WHERE artist_uuid = :artistUuid order by year asc")
     Single<List<AlbumEntity>> findByArtistUuidOrderByYear(String artistUuid);
 
+    @Query("SELECT * FROM album WHERE INSTR(LOWER(name), :lowerCaseQuery) > 0 order by year asc")
+    Single<List<AlbumEntity>> findAlbumsByQuery(String lowerCaseQuery);
+
     @Query("SELECT * FROM album WHERE artist_uuid = :artistUuid order by name collate nocase asc")
     Single<List<AlbumEntity>> findByArtistUuidOrderByName(String artistUuid);
 

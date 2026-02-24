@@ -211,14 +211,14 @@ public class PlayerService extends MediaBrowserServiceCompat {
 
     @Override
     public void onSearch(@NonNull String query, Bundle extras, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
-        L.i("onSearch: " + query);
+        L.i("onSearch: " + query + ", extras: " + L.toString(extras));
         result.detach();
-        result.sendResult(Collections.emptyList());
+        MediaBrowserHelper.searchFromService(this, d().repository(), query, children -> doSendResults(children, result));
     }
 
     @Override
     public void onCustomAction(@NonNull String action, Bundle extras, @NonNull Result<Bundle> result) {
-        L.i("onCustomAction: " + action);
+        L.i("onCustomAction: " + action + ", extras: " + L.toString(extras));
         super.onCustomAction(action, extras, result);
     }
 
