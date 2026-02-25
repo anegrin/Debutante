@@ -17,6 +17,7 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
@@ -38,6 +39,15 @@
         android:theme="@style/Theme.Debutante"
         android:usesCleartextTraffic="true"
         tools:ignore="MissingIntentFilterForMediaSearch,LockedOrientationActivity">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
 
         <activity
             android:name=".PreferencesActivity"
@@ -106,11 +116,11 @@
             android:foregroundServiceType="dataSync" />
         <service
             android:name=".service.SyncJobService"
-            android:exported="false"
+            android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
             android:name=".service.WatchdogJobService"
-            android:exported="false"
+            android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <receiver

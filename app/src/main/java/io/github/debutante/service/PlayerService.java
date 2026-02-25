@@ -21,7 +21,6 @@ import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.KeyEvent;
 
 import androidx.annotation.NonNull;
@@ -126,13 +125,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
         super.onCreate();
         L.i("Creating media service");
         mediaSession = new MediaSessionCompat(this, Debutante.TAG);
-        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
-                .setState(PlaybackStateCompat.STATE_PAUSED, 0, 1.0f)
-                .setActions(MediaPlaybackPreparer.SUPPORTED_PREPARE_ACTIONS) // CRITICAL for Bluetooth 16
-                .build());
-        setSessionToken(mediaSession.getSessionToken());
-        mediaSession.setActive(true);
-
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
         mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
@@ -148,6 +140,9 @@ public class PlayerService extends MediaBrowserServiceCompat {
             m.invalidateMediaSessionQueue();
             m.invalidateMediaSessionMetadata();
         });
+        setSessionToken(mediaSession.getSessionToken());
+        mediaSession.setActive(true);
+
         PlayerNotificationManager playerNotificationManager = buildPlayerNotificationManager(this, playerWrapper, mediaSession, d()::picasso);
 
         exoPlayerListener = new ExoPlayerListener(this, d().exoPlayer(), d().downloadManager(), playerNotificationManager, d().appConfig().getSongsToPreload(), playerWrapper);
