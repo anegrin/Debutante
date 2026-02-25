@@ -30,7 +30,7 @@ import io.github.debutante.persistence.entities.SongEntity;
 
 public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPreparer {
 
-    private static final long SUPPORTED_PREPARE_ACTIONS =
+    public static final long SUPPORTED_PREPARE_ACTIONS =
             PlaybackStateCompat.ACTION_PREPARE
                     | PlaybackStateCompat.ACTION_PREPARE_FROM_MEDIA_ID
                     | PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
