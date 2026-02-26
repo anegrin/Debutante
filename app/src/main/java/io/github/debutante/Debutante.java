@@ -329,7 +329,7 @@ public class Debutante extends Application {
                     @Override
                     protected void buildCameraMotionRenderers(Context context, int extensionRendererMode, ArrayList<Renderer> out) {
                     }
-                }.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+                }.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
                         .setEnableAudioOffload(DeviceHelper.supportsAudioOffload()))
                 .setAudioAttributes(audioAttributes, true)
                 .setHandleAudioBecomingNoisy(appConfig.isHandleAudioBecomingNoisy())

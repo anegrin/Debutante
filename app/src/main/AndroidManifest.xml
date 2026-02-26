@@ -76,6 +76,7 @@
         <service
             android:name="io.github.debutante.service.PlayerService"
             android:exported="true"
+            android:label="@string/app_name"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />

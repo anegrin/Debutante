@@ -124,6 +124,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
     public void onCreate() {
         super.onCreate();
         L.i("Creating media service");
+        long start = System.currentTimeMillis();
         mediaSession = new MediaSessionCompat(this, Debutante.TAG);
         mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
@@ -140,6 +141,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
             m.invalidateMediaSessionQueue();
             m.invalidateMediaSessionMetadata();
         });
+        L.i("Creating media service, mediaSession init took: " + (System.currentTimeMillis() - start));
         setSessionToken(mediaSession.getSessionToken());
         mediaSession.setActive(true);
 

@@ -98,10 +98,10 @@ dependencies {
     implementation "com.google.android.exoplayer:extension-cast:$exo_version"
     implementation "com.google.android.exoplayer:extension-mediasession:$exo_version"
     implementation "com.google.android.exoplayer:extension-okhttp:$exo_version"
-    debugImplementation files("libs/exoplayer-extension-flac-debug.aar")
+    /*debugImplementation files("libs/exoplayer-extension-flac-debug.aar")
     debugImplementation files("libs/exoplayer-extension-opus-debug.aar")
     releaseImplementation files("libs/exoplayer-extension-flac-release.aar")
-    releaseImplementation files("libs/exoplayer-extension-opus-release.aar")
+    releaseImplementation files("libs/exoplayer-extension-opus-release.aar")*/
 
     def room_version = "2.6.1"
     implementation "androidx.room:room-runtime:$room_version"
