@@ -37,7 +37,10 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
                     | PlaybackStateCompat.ACTION_PREPARE_FROM_SEARCH
                     | PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH
                     | PlaybackStateCompat.ACTION_PREPARE_FROM_URI
-                    | PlaybackStateCompat.ACTION_PLAY_FROM_URI;
+                    | PlaybackStateCompat.ACTION_PLAY_FROM_URI
+                    | PlaybackStateCompat.ACTION_SKIP_TO_QUEUE_ITEM
+                    | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                    | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS;
     private final Context context;
     private final PlayerWrapper playerWrapper;
     private final EntityRepository repository;

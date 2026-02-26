@@ -110,7 +110,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
     }
 
     @Override
-    public IBinder onBind(Intent intent) {
+    public synchronized IBinder onBind(Intent intent) {
         L.i("Binding to media service, action: " + Optional.ofNullable(intent).map(Intent::getAction).orElse("<none>"));
 
         if (intent != null && PlayerService.class.getName().equals(intent.getAction())) {
@@ -121,7 +121,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
     }
 
     @Override
-    public void onCreate() {
+    public synchronized void onCreate() {
         super.onCreate();
         L.i("Creating media service");
         long start = System.currentTimeMillis();
@@ -140,6 +140,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
             playerWrapper.player().prepare();
             m.invalidateMediaSessionQueue();
             m.invalidateMediaSessionMetadata();
+            m.invalidateMediaSessionPlaybackState();
         });
         L.i("Creating media service, mediaSession init took: " + (System.currentTimeMillis() - start));
         setSessionToken(mediaSession.getSessionToken());
@@ -256,11 +257,11 @@ public class PlayerService extends MediaBrowserServiceCompat {
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    public synchronized int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             L.i("PlayerService.onStartCommand: " + intent.getAction() + " " + L.toString(intent.getExtras()));
         }
-        synchronized (GLOBAL_LOCK) {
+        //synchronized (GLOBAL_LOCK) {
             int startCommand = super.onStartCommand(intent, flags, startId);
 
             if (!startLock.getAndSet(true)) {
@@ -329,7 +330,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
             }
 
             return startCommand;
-        }
+        //}
     }
 
     public boolean startedOnce() {

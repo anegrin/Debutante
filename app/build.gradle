@@ -8,12 +8,12 @@ properties.load(project.rootProject.file("local.properties").newDataInputStream(
 def acraEmail = properties.getOrDefault("acra.email", "none@none.none")
 
 android {
-    compileSdk=36
+    compileSdk=35
 
     defaultConfig {
         applicationId="io.github.debutante"
         minSdk=28
-        targetSdk=36
+        targetSdk=35
         versionCode=1_02_01
         versionName="1.2.1"
 
