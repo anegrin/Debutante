@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Handler;
 import android.os.Parcelable;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -37,7 +38,9 @@ public class A2DPReceiver extends BroadcastReceiver {
                     AppConfig appConfig = Debutante.loadAppConfig(context);
                     BluetoothDevice bluetoothDevice = (BluetoothDevice) parcelableExtra;
                     if (!CollectionUtils.containsAny(appConfig.getAutoplayBTExclusion(), bluetoothDevice.getAddress())) {
-                        context.startService(Obj.tap(new Intent(context, InitService.class), i -> i.setAction(InitService.ACTION_PLAY)));
+                        new Handler(context.getMainLooper()).postDelayed(() -> {
+                            context.startService(Obj.tap(new Intent(context, InitService.class), i -> i.setAction(InitService.ACTION_PLAY)));
+                        }, 2112);
                     }
                 }
             }

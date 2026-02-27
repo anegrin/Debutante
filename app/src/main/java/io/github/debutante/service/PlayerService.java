@@ -110,7 +110,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
     }
 
     @Override
-    public synchronized IBinder onBind(Intent intent) {
+    public IBinder onBind(Intent intent) {
         L.i("Binding to media service, action: " + Optional.ofNullable(intent).map(Intent::getAction).orElse("<none>"));
 
         if (intent != null && PlayerService.class.getName().equals(intent.getAction())) {
@@ -121,12 +121,12 @@ public class PlayerService extends MediaBrowserServiceCompat {
     }
 
     @Override
-    public synchronized void onCreate() {
+    public void onCreate() {
         super.onCreate();
         L.i("Creating media service");
-        long start = System.currentTimeMillis();
-        mediaSession = new MediaSessionCompat(this, Debutante.TAG);
-        mediaSession.addOnActiveChangeListener(() -> L.i("Session changing active state: " + mediaSession.isActive()));
+        mediaSession = new MediaSessionCompat(this, Debutante.TAG + ".MSC");
+        setSessionToken(mediaSession.getSessionToken());
+        L.i("Initializing player");
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
         mediaSession.setSessionActivity(PendingIntent.getActivity(this, BaseForegroundService.STOP_SERVICE_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         nullSafeMediaMetadataProvider = new NullSafeMediaMetadataProvider(mediaSession);
@@ -142,9 +142,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
             m.invalidateMediaSessionMetadata();
             m.invalidateMediaSessionPlaybackState();
         });
-        L.i("Creating media service, mediaSession init took: " + (System.currentTimeMillis() - start));
-        setSessionToken(mediaSession.getSessionToken());
-        mediaSession.setActive(true);
 
         PlayerNotificationManager playerNotificationManager = buildPlayerNotificationManager(this, playerWrapper, mediaSession, d()::picasso);
 
@@ -161,6 +158,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
                     f.addAction(SyncAccountBroadcastReceiver.FORCE_STOP_ACTION);
                 }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
         );
+
     }
 
     public PlayerWrapper playerWrapper() {
@@ -257,11 +255,11 @@ public class PlayerService extends MediaBrowserServiceCompat {
     }
 
     @Override
-    public synchronized int onStartCommand(Intent intent, int flags, int startId) {
+    public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             L.i("PlayerService.onStartCommand: " + intent.getAction() + " " + L.toString(intent.getExtras()));
         }
-        //synchronized (GLOBAL_LOCK) {
+        synchronized (GLOBAL_LOCK) {
             int startCommand = super.onStartCommand(intent, flags, startId);
 
             if (!startLock.getAndSet(true)) {
@@ -330,7 +328,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
             }
 
             return startCommand;
-        //}
+        }
     }
 
     public boolean startedOnce() {
