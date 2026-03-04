@@ -115,6 +115,6 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
     @SuppressLint("MissingPermission")//checked on constructor
     public boolean isA2DPConnected() {
         return bluetoothAdapter != null && bluetoothAdapter.isEnabled()
-                && bluetoothAdapter.getProfileConnectionState(BluetoothHeadset.A2DP) == BluetoothHeadset.STATE_CONNECTED;
+                && bluetoothAdapter.getProfileConnectionState(BluetoothHeadset.A2DP) == BluetoothAdapter.STATE_CONNECTED;
     }
 }

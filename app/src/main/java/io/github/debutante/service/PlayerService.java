@@ -259,6 +259,8 @@ public class PlayerService extends MediaBrowserServiceCompat {
         if (intent != null) {
             L.i("PlayerService.onStartCommand: " + intent.getAction() + " " + L.toString(intent.getExtras()));
         }
+        mediaSession.setActive(!playerWrapper.isCasting());
+
         synchronized (GLOBAL_LOCK) {
             int startCommand = super.onStartCommand(intent, flags, startId);
 
@@ -284,8 +286,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                         Debutante.TAG + "::" + getClass().getSimpleName());
             }
-
-            mediaSession.setActive(!playerWrapper.isCasting());
 
             String action = intent != null ? intent.getAction() : null;
 
