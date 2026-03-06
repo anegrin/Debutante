@@ -15,7 +15,6 @@ public class BootCompletedReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (intent != null && ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             L.i("Receiving " + intent.getAction() + " " + L.toString(intent.getExtras()));
-            //context.startService(Obj.tap(new Intent(context, InitService.class), i -> i.setAction(InitService.ACTION_PREPARE)));
             new Scheduler(context).scheduleSync(new AppConfig(context), false);
         }
     }

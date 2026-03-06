@@ -60,7 +60,7 @@ import io.github.debutante.receivers.BrowseMediaBroadcastReceiver;
 import io.github.debutante.receivers.CastMenuItemBroadcastReceiver;
 import io.github.debutante.receivers.PlayMediaBroadcastReceiver;
 import io.github.debutante.service.LocalBinder;
-import io.github.debutante.service.PlayerService;
+import io.github.debutante.service.MediaService;
 
 public class MainActivity extends BaseActivity {
 
@@ -102,14 +102,14 @@ public class MainActivity extends BaseActivity {
             activityResultLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
         }
 
-        Intent intent = new Intent(this, PlayerService.class).setAction(PlayerService.class.getName());
+        Intent intent = new Intent(this, MediaService.class).setAction(MediaService.class.getName());
         serviceConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                PlayerService playerService = ((LocalBinder<PlayerService>) service).getService();
-                playerWrapper = playerService.playerWrapper();
+                MediaService mediaService = ((LocalBinder<MediaService>) service).getService();
+                playerWrapper = mediaService.playerWrapper();
                 playerWrapper.setOptionalOffloadSchedulingEnabled(true);
-                mediaSession = playerService.mediaSession();
+                mediaSession = mediaService.mediaSession();
 
                 binding = BindingHelper.bindAndSetContent(MainActivity.this, ActivityMainBinding::inflate);
                 binding.bCreateAccount.setOnClickListener(MainActivity.this::onCreate);

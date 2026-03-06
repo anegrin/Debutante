@@ -5,6 +5,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.ResultReceiver;
 import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaDescriptionCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 
 import androidx.annotation.NonNull;
@@ -28,7 +30,7 @@ import io.github.debutante.persistence.PlayerState;
 import io.github.debutante.persistence.entities.AlbumEntity;
 import io.github.debutante.persistence.entities.SongEntity;
 
-public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPreparer {
+public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPreparer, MediaSessionConnector.QueueEditor {
 
     public static final long SUPPORTED_PREPARE_ACTIONS =
             PlaybackStateCompat.ACTION_PREPARE
@@ -42,11 +44,13 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
                     | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                     | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS;
     private final Context context;
+    private final MediaSessionCompat mediaSession;
     private final PlayerWrapper playerWrapper;
     private final EntityRepository repository;
 
-    public MediaPlaybackPreparer(Context context, PlayerWrapper playerWrapper, EntityRepository repository) {
+    public MediaPlaybackPreparer(Context context, MediaSessionCompat mediaSession, PlayerWrapper playerWrapper, EntityRepository repository) {
         this.context = context;
+        this.mediaSession = mediaSession;
         this.playerWrapper = playerWrapper;
         this.repository = repository;
     }
@@ -58,6 +62,7 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepare(boolean playWhenReady) {
+        mediaSession.setActive(true);
 
         L.i("onPrepare, playWhenReady=" + playWhenReady);
 
@@ -86,6 +91,7 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromMediaId(String mediaId, boolean playWhenReady, @Nullable Bundle extras) {
+        mediaSession.setActive(true);
 
         L.i("onPrepareFromMediaId: " + mediaId);
 
@@ -110,6 +116,7 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromSearch(@NonNull String query, boolean playWhenReady, @Nullable Bundle extras) {
+        mediaSession.setActive(true);
         L.i("onPrepareFromSearch: " + query);
         MediaBrowserHelper.search(context, repository, query, found -> {
             found.stream().findFirst().ifPresent(r -> {
@@ -120,6 +127,7 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromUri(@NonNull Uri uri, boolean playWhenReady, @Nullable Bundle extras) {
+        mediaSession.setActive(true);
         L.i("onPrepareFromUri: " + uri);
 
         onPrepareFromMediaId(uri.toString(), playWhenReady, extras);
@@ -127,7 +135,26 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public boolean onCommand(@NonNull Player player, @NonNull String command, @Nullable Bundle extras, @Nullable ResultReceiver cb) {
+        mediaSession.setActive(true);
         L.d("onCommand: " + command);
         return false;
+    }
+
+    @Override
+    public void onAddQueueItem(Player player, MediaDescriptionCompat description) {
+        L.d("onAddQueueItem");
+
+    }
+
+    @Override
+    public void onAddQueueItem(Player player, MediaDescriptionCompat description, int index) {
+        L.d("onAddQueueItem @" + index);
+
+    }
+
+    @Override
+    public void onRemoveQueueItem(Player player, MediaDescriptionCompat description) {
+        L.d("onRemoveQueueItem");
+
     }
 }

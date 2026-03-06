@@ -38,7 +38,8 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 public class MediaBrowserHelper {
     private static final String RES_PREFIX = "android.resource://" + BuildConfig.APPLICATION_ID + "/drawable/";
 
-    public static final String ROOT_ID = "ROOT_ID";
+    public static final String ROOT_ID = "__ROOT_ID__";
+    public static final String RECENT_ROOT = "__RECENT_ROOT_ID__";
     public static final String PREVIOUS_SESSION_ID = MediaBrowserHelper.class.getSimpleName() + "-PREVIOUS_SESSION_ID";
     public static final String RECURSIVE_CHILDREN_LOADING = "_rcl";
     public static final String PREPEND_ACTIONS = "_pa";

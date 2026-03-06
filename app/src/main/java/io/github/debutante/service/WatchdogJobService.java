@@ -11,19 +11,18 @@ import io.github.debutante.helper.L;
 import io.github.debutante.helper.PlayerWrapper;
 
 public class WatchdogJobService extends JobService {
-    private static final long TIMEOUT = 30_000;
     private PlayerWrapper playerWrapper;
     private ServiceConnection serviceConnection;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Intent serviceIntent = new Intent(this, PlayerService.class).setAction(PlayerService.class.getName());
+        Intent serviceIntent = new Intent(this, MediaService.class).setAction(MediaService.class.getName());
 
         serviceConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                playerWrapper = ((LocalBinder<PlayerService>) service).getService().playerWrapper();
+                playerWrapper = ((LocalBinder<MediaService>) service).getService().playerWrapper();
             }
 
             @Override
@@ -51,7 +50,9 @@ public class WatchdogJobService extends JobService {
             return true;
         } else {
             jobFinished(params, false);
-            stopService(new Intent(WatchdogJobService.this, PlayerService.class));
+            Intent intent = new Intent(MediaService.ACTION_DEACTIVATE_SESSION);
+            getApplicationContext().sendBroadcast(intent);
+            stopService(new Intent(this, PlayerService.class));
             return false;
         }
     }

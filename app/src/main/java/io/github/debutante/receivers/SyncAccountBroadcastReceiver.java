@@ -45,7 +45,7 @@ import io.github.debutante.persistence.entities.AlbumEntity;
 import io.github.debutante.persistence.entities.ArtistEntity;
 import io.github.debutante.persistence.entities.BaseEntity;
 import io.github.debutante.persistence.entities.SongEntity;
-import io.github.debutante.service.PlayerService;
+import io.github.debutante.service.MediaService;
 import io.github.debutante.service.SyncService;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Completable;
@@ -426,7 +426,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
                         String mediaId = EntityHelper.mediaId(EntityHelper.mediaId(parentEntity), Collections.singletonMap(MediaBrowserHelper.PREPEND_ACTIONS, false));
                         BrowseMediaBroadcastReceiver.broadcast(context, mediaId);
                         context.stopService(new Intent(context, SyncService.class));
-                        PlayerService.invalidateSession();
+                        MediaService.invalidateSession();
                     }, Throwable::printStackTrace);
         }
     }
@@ -435,7 +435,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
         toast(context, context.getString(forceStop.get() ? R.string.fetch_aborted : R.string.fetch_success));
         running.set(false);
         forceStop.set(false);
-        PlayerService.invalidateSession();
+        MediaService.invalidateSession();
     }
 
     private Duration getRandomDelay() {

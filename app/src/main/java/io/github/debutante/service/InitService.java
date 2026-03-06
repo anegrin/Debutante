@@ -47,32 +47,18 @@ public class InitService extends Service {
 
                 L.d("Autoplay on Bluetooth is enabled");
 
-                Intent serviceIntent = new Intent(this, PlayerService.class).setAction(PlayerService.class.getName());
+                Intent serviceIntent = new Intent(this, MediaService.class).setAction(MediaService.class.getName());
 
                 final Handler handler = new Handler(getMainLooper());
                 final ServiceConnection serviceConnection = new ServiceConnection() {
                     @Override
                     public void onServiceConnected(ComponentName name, IBinder service) {
-                        PlayerService playerService = ((LocalBinder<PlayerService>) service).getService();
-                        PlayerWrapper playerWrapper = playerService.playerWrapper();
+                        MediaService mediaService = ((LocalBinder<MediaService>) service).getService();
+                        PlayerWrapper playerWrapper = mediaService.playerWrapper();
 
                         final Player player = playerWrapper.player();
                         if (!playerWrapper.isCasting() && !player.isPlaying()) {
-                            if (playerService.mediaSession().isActive() && playerService.startedOnce()) {
-                                L.i("Resuming current media session");
-                                handler.post(player::play);
-                            } else {
-                                L.i("Resuming last media session");
-                                PendingIntent pendingIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
-                                        InitService.this,
-                                        PlaybackStateCompat.ACTION_PLAY
-                                );
-                                try {
-                                    pendingIntent.send();
-                                } catch (PendingIntent.CanceledException e) {
-                                    L.e("Can't send pending intent", e);
-                                }
-                            }
+                            bindToPlayerServiceAndPlay(mediaService, playerWrapper, handler);
                         }
                         unbindService(this);
                     }
@@ -90,6 +76,42 @@ public class InitService extends Service {
         }
 
         return startCommand;
+    }
+
+    private void bindToPlayerServiceAndPlay(MediaService mediaService, PlayerWrapper playerWrapper, Handler handler) {
+        Intent serviceIntent = new Intent(this, PlayerService.class);
+
+        final ServiceConnection serviceConnection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                PlayerService playerService = ((LocalBinder<PlayerService>) service).getService();
+
+                final Player player = playerWrapper.player();
+                if (mediaService.mediaSession().isActive() && playerService.startedOnce()) {
+                    L.i("Resuming current media session");
+                    handler.post(player::play);
+                } else {
+                    L.i("Resuming last media session");
+                    PendingIntent pendingIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
+                            InitService.this,
+                            PlaybackStateCompat.ACTION_PLAY
+                    );
+                    try {
+                        pendingIntent.send();
+                    } catch (PendingIntent.CanceledException e) {
+                        L.e("Can't send pending intent", e);
+                    }
+                }
+                unbindService(this);
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+
+            }
+        };
+
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
     protected Debutante d() {

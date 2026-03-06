@@ -27,8 +27,8 @@ public abstract class BaseForegroundService extends Service {
 
     private final AtomicBoolean receiverLock = new AtomicBoolean(false);
 
-    public static final String ACTION_STOP = BaseForegroundService.class.getSimpleName() + "-ACTION_STOP";
-    public static final int STOP_SERVICE_REQUEST_CODE = 1;
+    private static final int STOP_SERVICE_REQUEST_CODE = 1;
+    private final String ACTION_STOP = getClass().getSimpleName() + "-ACTION_STOP";
 
     private final StopBroadcastReceiver stopBroadcastReceiver = new StopBroadcastReceiver();
 

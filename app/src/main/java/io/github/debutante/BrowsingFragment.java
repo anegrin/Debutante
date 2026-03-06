@@ -46,7 +46,7 @@ import io.github.debutante.model.BrowseMediaViewModel;
 import io.github.debutante.persistence.entities.AccountEntity;
 import io.github.debutante.receivers.BrowseMediaBroadcastReceiver;
 import io.github.debutante.receivers.PlayMediaBroadcastReceiver;
-import io.github.debutante.service.PlayerService;
+import io.github.debutante.service.MediaService;
 
 public abstract class BrowsingFragment<B extends ViewBinding> extends BaseFragment {
 
@@ -167,7 +167,7 @@ public abstract class BrowsingFragment<B extends ViewBinding> extends BaseFragme
 
         String previousSessionId = currentSessionId;
 
-        currentSessionId = PlayerService.currentSessionId();
+        currentSessionId = MediaService.currentSessionId();
 
         if (browseMediaViewModel != null && !StringUtils.equals(previousSessionId, currentSessionId)) {
             Optional.ofNullable(browseMediaViewModel.get())
