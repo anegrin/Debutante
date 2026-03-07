@@ -198,6 +198,7 @@ public class PlayerWrapper {
                     method.invoke(activePlayer, args);
                     return Void.class;
                 } else if (method.getName().equals("prepare") && activePlayer.getPlayWhenReady()) {
+                    //if not play when ready it will hit "else" and won't start fg service
                     Intent service = new Intent(context, PlayerService.class);
                     service.setAction(PlayerService.ACTION_PREPARE);
                     context.startForegroundService(service);

@@ -64,7 +64,6 @@ public class MediaService extends MediaBrowserServiceCompat {
     private ExoPlayerListener exoPlayerListener;
     private CastPlayerListener castPlayerListener;
     private NullSafeMediaMetadataProvider nullSafeMediaMetadataProvider;
-    private MediaPlaybackPreparer playbackPreparer;
 
     public static void invalidateSession() {
         sessionId = Obj.tap(UUID.randomUUID().toString(), s -> L.d("Creating new session id: " + s));
@@ -88,6 +87,7 @@ public class MediaService extends MediaBrowserServiceCompat {
 
     @Override
     public IBinder onBind(Intent intent) {
+        mediaSession.setActive(true);
         L.i("Binding to media service, action: " + Optional.ofNullable(intent).map(Intent::getAction).orElse("<none>"));
 
         if (intent != null && MediaService.class.getName().equals(intent.getAction())) {
@@ -106,19 +106,7 @@ public class MediaService extends MediaBrowserServiceCompat {
         playerWrapper = new PlayerWrapper(this, d().exoPlayer(), d().castPlayer(), d().repository(), d().appConfig());
         mediaSession.setSessionActivity(PendingIntent.getActivity(this, DEACTIVATE_SESSION_REQUEST_CODE, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         nullSafeMediaMetadataProvider = new NullSafeMediaMetadataProvider(mediaSession);
-        playbackPreparer = new MediaPlaybackPreparer(this, mediaSession, playerWrapper, d().repository());
-        MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
-            m.setPlayer(playerWrapper.player());
-            MediaQueueNavigator queueNavigator = new MediaQueueNavigator(this, mediaSession, d().appConfig(), s -> new File(d().cacheDir(), okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1"));
-            m.setQueueNavigator(queueNavigator);
-            m.setQueueEditor(playbackPreparer);
-            m.setPlaybackPreparer(playbackPreparer);
-            m.setMediaMetadataProvider(nullSafeMediaMetadataProvider);
-            playerWrapper.player().prepare();
-            m.invalidateMediaSessionQueue();
-            m.invalidateMediaSessionMetadata();
-            m.invalidateMediaSessionPlaybackState();
-        });
+        MediaPlaybackPreparer playbackPreparer = new MediaPlaybackPreparer(this, mediaSession, playerWrapper, d().repository());
 
         PlayerNotificationManager playerNotificationManager = buildPlayerNotificationManager(this, playerWrapper, mediaSession, d()::picasso);
 
@@ -127,7 +115,6 @@ public class MediaService extends MediaBrowserServiceCompat {
         castPlayerListener = new CastPlayerListener(this, d().castPlayer(), d().sharedInstance().getPrecacheManager(), d().mediaItemConverter(), playerWrapper);
         d().castPlayer().addListener(castPlayerListener);
 
-        d().castPlayer().setSessionAvailabilityListener(new CastSessionAvailabilityListener(this, playerWrapper, mediaSessionConnector, d().appConfig()));
 
         syncAccountBroadcastReceiver = new SyncAccountBroadcastReceiver(d().okHttpClient(), playerWrapper, d().gson(), d().repository());
         registerReceiver(syncAccountBroadcastReceiver, Obj.tap(new IntentFilter(), f -> {
@@ -137,6 +124,17 @@ public class MediaService extends MediaBrowserServiceCompat {
         );
 
         registerReceiver(deactivateSessionBroadcastReceiver, new IntentFilter(ACTION_DEACTIVATE_SESSION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
+
+        MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
+            MediaQueueNavigator queueNavigator = new MediaQueueNavigator(this, mediaSession, d().appConfig(), s -> new File(d().cacheDir(), okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1"));
+            m.setQueueNavigator(queueNavigator);
+            m.setQueueEditor(playbackPreparer);
+            m.setPlaybackPreparer(playbackPreparer);
+            m.setMediaMetadataProvider(nullSafeMediaMetadataProvider);
+            m.setPlayer(playerWrapper.player());
+        });
+        d().castPlayer().setSessionAvailabilityListener(new CastSessionAvailabilityListener(this, playerWrapper, mediaSessionConnector, d().appConfig()));
+
         setSessionToken(mediaSession.getSessionToken());
         mediaSession.setActive(true);
     }
@@ -147,10 +145,6 @@ public class MediaService extends MediaBrowserServiceCompat {
 
     public MediaSessionCompat mediaSession() {
         return mediaSession;
-    }
-
-    public MediaPlaybackPreparer playbackPreparer() {
-        return playbackPreparer;
     }
 
     @Nullable
@@ -241,7 +235,7 @@ public class MediaService extends MediaBrowserServiceCompat {
 
     @Override
     public void onDestroy() {
-        L.i("Stopping foreground player service");
+        L.i("Stopping media service");
         unregisterReceiver(deactivateSessionBroadcastReceiver);
         d().exoPlayer().removeListener(exoPlayerListener);
         d().castPlayer().removeListener(castPlayerListener);

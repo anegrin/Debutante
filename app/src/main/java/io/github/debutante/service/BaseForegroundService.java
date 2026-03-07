@@ -25,7 +25,7 @@ import io.github.debutante.helper.Obj;
 
 public abstract class BaseForegroundService extends Service {
 
-    private final AtomicBoolean receiverLock = new AtomicBoolean(false);
+    private final AtomicBoolean startedLock = new AtomicBoolean(false);
 
     private static final int STOP_SERVICE_REQUEST_CODE = 1;
     private final String ACTION_STOP = getClass().getSimpleName() + "-ACTION_STOP";
@@ -85,19 +85,19 @@ public abstract class BaseForegroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
 
-        if (!receiverLock.getAndSet(true)) {
+        if (!startedLock.getAndSet(true)) {
             L.i("Registering stop service receiver");
             registerReceiver(stopBroadcastReceiver, new IntentFilter(ACTION_STOP), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
-        }
 
-        PendingIntent deleteIntent = PendingIntent.getBroadcast(this, STOP_SERVICE_REQUEST_CODE, new Intent(ACTION_STOP), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent deleteIntent = PendingIntent.getBroadcast(this, STOP_SERVICE_REQUEST_CODE, new Intent(ACTION_STOP), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        Notification notification = buildNotification(this, getActivityIntent(), notifictionContentResId, progressing, deleteIntent);
+            Notification notification = buildNotification(this, getActivityIntent(), notifictionContentResId, progressing, deleteIntent);
 
-        if (DeviceHelper.needsForegroundServiceTypeOnStart()) {
-            startForeground(notificationId, notification, foregroundServiceType);
-        } else {
-            startForeground(notificationId, notification);
+            if (DeviceHelper.needsForegroundServiceTypeOnStart()) {
+                startForeground(notificationId, notification, foregroundServiceType);
+            } else {
+                startForeground(notificationId, notification);
+            }
         }
         return START_NOT_STICKY;
     }
@@ -118,7 +118,7 @@ public abstract class BaseForegroundService extends Service {
     }
 
     private void unregisterReceiver() {
-        if (receiverLock.getAndSet(false)) {
+        if (startedLock.getAndSet(false)) {
             L.i("Unregistering stop service receiver");
             unregisterReceiver(stopBroadcastReceiver);
         }
