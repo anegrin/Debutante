@@ -135,8 +135,21 @@ public class MediaService extends MediaBrowserServiceCompat {
         });
         d().castPlayer().setSessionAvailabilityListener(new CastSessionAvailabilityListener(this, playerWrapper, mediaSessionConnector, d().appConfig()));
 
-        setSessionToken(mediaSession.getSessionToken());
-        mediaSession.setActive(true);
+        Player.Listener onReady = new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                if (playbackState != 0) {
+                    L.i("Setting session token");
+                    mediaSessionConnector.invalidateMediaSessionQueue();
+                    mediaSessionConnector.invalidateMediaSessionMetadata();
+                    mediaSessionConnector.invalidateMediaSessionPlaybackState();
+                    mediaSession.setActive(true);
+                    setSessionToken(mediaSession.getSessionToken());
+                }
+                d().exoPlayer().removeListener(this);
+            }
+        };
+        d().exoPlayer().addListener(onReady);
     }
 
     public PlayerWrapper playerWrapper() {
