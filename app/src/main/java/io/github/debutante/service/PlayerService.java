@@ -47,7 +47,7 @@ public class PlayerService extends BaseForegroundService {
     private MediaCouple mediaCouple;
 
     public PlayerService() {
-        super(R.string.player_service_notification_content, Debutante.NOTIFICATION_ID, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        super(R.string.player_service_notification_content, Debutante.NOTIFICATION_ID - 1, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
     }
 
     @Override
@@ -114,9 +114,12 @@ public class PlayerService extends BaseForegroundService {
         String action = intent != null ? intent.getAction() : null;
 
         boolean playButtonPressed = false;
+        boolean pauseButtonPressed = false;
         if (ACTION_MEDIA_BUTTON.equals(action)) {
             KeyEvent keyEvent = DeviceHelper.hasTypeSafeGetParcelableExtra() ? intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent.class) : intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
             playButtonPressed = keyEvent != null && keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY;
+            pauseButtonPressed = keyEvent != null && keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PAUSE;
+            L.i("Action is from media button: " + keyEvent + " play:"+playButtonPressed+", pause:"+pauseButtonPressed);
         }
 
         if (ACTION_WAKE.equals(action)) {
@@ -127,7 +130,9 @@ public class PlayerService extends BaseForegroundService {
                 Thread.currentThread().interrupt();
             }
             acquireLock();
-        } else if (ACTION_PAUSE.equals(action)) {
+        } else if (pauseButtonPressed || ACTION_PAUSE.equals(action)) {
+            mediaSession.setActive(true);
+            playerWrapper.activePlayer().pause();
             releaseLock();
         } else if (playButtonPressed || ACTION_PLAY.equals(action)) {
             releaseLock();

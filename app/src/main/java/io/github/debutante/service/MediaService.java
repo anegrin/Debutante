@@ -139,10 +139,10 @@ public class MediaService extends MediaBrowserServiceCompat {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
                 if (playbackState != 0) {
-                    L.i("Setting session token");
                     mediaSessionConnector.invalidateMediaSessionQueue();
                     mediaSessionConnector.invalidateMediaSessionMetadata();
                     mediaSessionConnector.invalidateMediaSessionPlaybackState();
+                    L.i("Setting session token, media session");
                     mediaSession.setActive(true);
                     setSessionToken(mediaSession.getSessionToken());
                 }

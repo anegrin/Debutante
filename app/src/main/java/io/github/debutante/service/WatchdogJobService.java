@@ -42,7 +42,7 @@ public class WatchdogJobService extends JobService {
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        L.d("Starting job");
+        L.d("Starting watchdog job");
 
         boolean isPlaying = playerWrapper != null && playerWrapper.player().isPlaying();
         if (isPlaying) {

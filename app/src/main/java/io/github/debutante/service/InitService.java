@@ -24,7 +24,7 @@ import io.github.debutante.helper.PlayerWrapper;
 public class InitService extends Service {
 
     public static final String ACTION_PLAY = InitService.class.getSimpleName() + "-ACTION_PLAY";
-    public static final String ACTION_PREPARE = InitService.class.getSimpleName() + "-ACTION_PREPARE";
+    public static final String ACTION_ACTIVATE_SESSION = InitService.class.getSimpleName() + "-ACTION_ACTIVATE_SESSION";
 
     @Nullable
     @Override
@@ -40,45 +40,41 @@ public class InitService extends Service {
 
         boolean autoplayOnBTEnabled = d().appConfig().isAutoplayOnBTEnabled();
 
-        if (autoplayOnBTEnabled) {
-            if (ACTION_PREPARE.equals(action)) {
-                L.i("Preparing app for A2DP events");
-            } else if (ACTION_PLAY.equals(action)) {
+        if (ACTION_PLAY.equals(action) || ACTION_ACTIVATE_SESSION.equals(action)) {
 
-                L.d("Autoplay on Bluetooth is enabled");
+            L.d("Autoplay on Bluetooth is enabled");
 
-                Intent serviceIntent = new Intent(this, MediaService.class).setAction(MediaService.class.getName());
+            final boolean play = autoplayOnBTEnabled && ACTION_PLAY.equals(action);
 
-                final Handler handler = new Handler(getMainLooper());
-                final ServiceConnection serviceConnection = new ServiceConnection() {
-                    @Override
-                    public void onServiceConnected(ComponentName name, IBinder service) {
-                        MediaService mediaService = ((LocalBinder<MediaService>) service).getService();
-                        PlayerWrapper playerWrapper = mediaService.playerWrapper();
+            Intent serviceIntent = new Intent(this, MediaService.class).setAction(MediaService.class.getName());
 
-                        final Player player = playerWrapper.player();
-                        if (!playerWrapper.isCasting() && !player.isPlaying()) {
-                            bindToPlayerServiceAndPlay(mediaService, playerWrapper, handler);
-                        }
-                        unbindService(this);
+            final Handler handler = new Handler(getMainLooper());
+            final ServiceConnection serviceConnection = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    MediaService mediaService = ((LocalBinder<MediaService>) service).getService();
+                    PlayerWrapper playerWrapper = mediaService.playerWrapper();
+
+                    final Player player = playerWrapper.player();
+                    if (!playerWrapper.isCasting() && !player.isPlaying()) {
+                        bindToPlayerServiceAndPlayOrPrepare(mediaService, playerWrapper, handler, play);
                     }
+                    unbindService(this);
+                }
 
-                    @Override
-                    public void onServiceDisconnected(ComponentName name) {
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
 
-                    }
-                };
+                }
+            };
 
-                bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
-
-            }
-
+            bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
         }
 
         return startCommand;
     }
 
-    private void bindToPlayerServiceAndPlay(MediaService mediaService, PlayerWrapper playerWrapper, Handler handler) {
+    private void bindToPlayerServiceAndPlayOrPrepare(MediaService mediaService, PlayerWrapper playerWrapper, Handler handler, boolean play) {
         Intent serviceIntent = new Intent(this, PlayerService.class);
 
         final ServiceConnection serviceConnection = new ServiceConnection() {
@@ -89,12 +85,13 @@ public class InitService extends Service {
                 final Player player = playerWrapper.player();
                 if (mediaService.mediaSession().isActive() && playerService.startedOnce()) {
                     L.i("Resuming current media session");
-                    handler.post(player::play);
+                    handler.post(play ? player::play : player::prepare);
                 } else {
                     L.i("Resuming last media session");
+                    // sending pause is just a trick to activate the session...
                     PendingIntent pendingIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
                             InitService.this,
-                            PlaybackStateCompat.ACTION_PLAY
+                            play ? PlaybackStateCompat.ACTION_PLAY : PlaybackStateCompat.ACTION_PAUSE
                     );
                     try {
                         pendingIntent.send();
