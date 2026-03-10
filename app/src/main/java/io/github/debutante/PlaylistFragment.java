@@ -30,7 +30,6 @@ import io.github.debutante.databinding.FragmentPlaylistBinding;
 import io.github.debutante.helper.BindingHelper;
 import io.github.debutante.helper.DeviceHelper;
 import io.github.debutante.helper.Obj;
-import io.github.debutante.helper.PlayerWrapper;
 import io.github.debutante.receivers.ChangeMediaItemBroadcastReceiver;
 
 public class PlaylistFragment extends BaseFragment {
@@ -52,9 +51,7 @@ public class PlaylistFragment extends BaseFragment {
 
         changeMediaItemBroadcastReceiver = new ChangeMediaItemBroadcastReceiver(d().repository(), d()::picasso, s -> currentMediaId = s);
 
-        PlayerWrapper playerWrapper = d().playerWrapper();
-
-        Player player = playerWrapper.player();
+        Player player = ma().playerWrapper().player();
 
         MediaItem currentMediaItem = player.getCurrentMediaItem();
         currentMediaId = currentMediaItem != null ? currentMediaItem.mediaId : null;

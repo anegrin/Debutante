@@ -9,7 +9,7 @@ import io.github.debutante.receivers.SyncAccountBroadcastReceiver;
 public class SyncJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
-        L.d("Starting job");
+        L.d("Starting sync job");
         SyncAccountBroadcastReceiver.broadcast(this);
         jobFinished(params, true);
         return true;

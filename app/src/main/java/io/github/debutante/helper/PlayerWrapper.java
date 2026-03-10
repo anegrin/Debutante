@@ -195,15 +195,18 @@ public class PlayerWrapper {
                     Intent service = new Intent(context, PlayerService.class);
                     service.setAction(PlayerService.ACTION_PAUSE);
                     context.startForegroundService(service);
-                    return method.invoke(activePlayer, args);
+                    method.invoke(activePlayer, args);
+                    return Void.class;
                 } else if (method.getName().equals("prepare") && activePlayer.getPlayWhenReady()) {
+                    //if not play when ready it will hit "else" and won't start fg service
                     Intent service = new Intent(context, PlayerService.class);
                     service.setAction(PlayerService.ACTION_PREPARE);
                     context.startForegroundService(service);
                     return Void.class;
                 } else if (method.getName().equals("stop") /*|| method.getName().equals("pause")*/) {
                     context.stopService(new Intent(context, PlayerService.class));
-                    return method.invoke(activePlayer, args);
+                    method.invoke(activePlayer, args);
+                    return Void.class;
                 } else if (method.getName().equals("setMediaItems")) {
 
                     if (ArrayUtils.isNotEmpty(args)) {
@@ -212,7 +215,8 @@ public class PlayerWrapper {
                         currentMediaItems = Collections.emptyList();
                     }
 
-                    return method.invoke(activePlayer, args);
+                    method.invoke(activePlayer, args);
+                    return Void.class;
                 } else if (method.getName().equals("getCurrentMediaItem")) {
                     MediaItem mediaItemAt = getMediaItemAt(activePlayer.getCurrentMediaItemIndex());
                     return mediaItemAt != null ? mediaItemAt : method.invoke(activePlayer, args);

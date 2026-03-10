@@ -57,6 +57,7 @@
     <string name="local_access_granted">Great, you can now listen to music from your own device</string>
     <string name="tv_error_duplicated_alias">Alias already exists</string>
     <string name="player_service_notification_content">Debutante service for background playing is running…</string>
+    <string name="media_service_notification_content">Debutante media browser service running…</string>
     <string name="init_service_notification_content">Debutante initialization service is running…</string>
     <string name="httpd_service_notification_content">Debutante HTTP service for casting local storage media files is running…</string>
     <string name="sync_service_notification_content">Debutante is syncing remote accounts…</string>

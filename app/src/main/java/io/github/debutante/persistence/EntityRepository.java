@@ -3,6 +3,7 @@ package io.github.debutante.persistence;
 import android.content.Context;
 import android.util.LruCache;
 
+import androidx.annotation.NonNull;
 import androidx.room.Room;
 
 import java.util.Iterator;
@@ -144,6 +145,12 @@ public class EntityRepository {
         } else {
             return albumDao.findByArtistUuidOrderByYear(uuid);
         }
+    }
+
+    public Single<List<AlbumEntity>> findAlbumsByQuery(@NonNull String query) {
+        log("findAlbumsByQuery " + query);
+
+        return albumDao.findAlbumsByQuery(query.toLowerCase());
     }
 
     public Single<List<SongEntity>> findSongsByAlbumUuid(String uuid) {

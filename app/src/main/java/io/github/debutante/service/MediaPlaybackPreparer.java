@@ -5,8 +5,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.ResultReceiver;
 import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaDescriptionCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.Player;
@@ -27,18 +30,27 @@ import io.github.debutante.persistence.PlayerState;
 import io.github.debutante.persistence.entities.AlbumEntity;
 import io.github.debutante.persistence.entities.SongEntity;
 
-public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPreparer {
+public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPreparer, MediaSessionConnector.QueueEditor {
 
-    private static final long SUPPORTED_PREPARE_ACTIONS =
+    public static final long SUPPORTED_PREPARE_ACTIONS =
             PlaybackStateCompat.ACTION_PREPARE
                     | PlaybackStateCompat.ACTION_PREPARE_FROM_MEDIA_ID
-                    | PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID;
+                    | PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
+                    | PlaybackStateCompat.ACTION_PREPARE_FROM_SEARCH
+                    | PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH
+                    | PlaybackStateCompat.ACTION_PREPARE_FROM_URI
+                    | PlaybackStateCompat.ACTION_PLAY_FROM_URI
+                    | PlaybackStateCompat.ACTION_SKIP_TO_QUEUE_ITEM
+                    | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                    | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS;
     private final Context context;
+    private final MediaSessionCompat mediaSession;
     private final PlayerWrapper playerWrapper;
     private final EntityRepository repository;
 
-    public MediaPlaybackPreparer(Context context, PlayerWrapper playerWrapper, EntityRepository repository) {
+    public MediaPlaybackPreparer(Context context, MediaSessionCompat mediaSession, PlayerWrapper playerWrapper, EntityRepository repository) {
         this.context = context;
+        this.mediaSession = mediaSession;
         this.playerWrapper = playerWrapper;
         this.repository = repository;
     }
@@ -50,15 +62,21 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepare(boolean playWhenReady) {
+        mediaSession.setActive(true);
 
         L.i("onPrepare, playWhenReady=" + playWhenReady);
 
         Optional<Pair<MediaBrowserCompat.MediaItem, List<MediaBrowserCompat.MediaItem>>> mediaItems = PlayerState.loadMediaItems(context, Optional.empty());
         Optional<String> currentMediaItemId = PlayerState.loadCurrentMediaItemId(context, Optional.empty());
 
-        mediaItems.ifPresent(p -> playerWrapper.newPlayerPreparer().prepare(p.getKey(), p.getValue(), currentMediaItemId.orElse(null), () -> {
-                }, Throwable::printStackTrace, playWhenReady, false)
-        );
+        if (mediaItems.isPresent()) {
+            Pair<MediaBrowserCompat.MediaItem, List<MediaBrowserCompat.MediaItem>> p = mediaItems.get();
+            playerWrapper.newPlayerPreparer().prepare(p.getKey(), p.getValue(), currentMediaItemId.orElse(null), () -> {
+            }, Throwable::printStackTrace, playWhenReady, false);
+        } else {
+            playerWrapper.newPlayerPreparer().prepare(() -> {
+            }, Throwable::printStackTrace);
+        }
     }
 
     private void onPrepare(String accountUuid, boolean playWhenReady) {
@@ -73,6 +91,7 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromMediaId(String mediaId, boolean playWhenReady, @Nullable Bundle extras) {
+        mediaSession.setActive(true);
 
         L.i("onPrepareFromMediaId: " + mediaId);
 
@@ -80,31 +99,62 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
             onPrepare(mediaId.substring(MediaBrowserHelper.PREVIOUS_SESSION_ID.length()), playWhenReady);
         } else {
             MediaBrowserHelper.load(context, repository, mediaId, found -> {
-
-                EntityHelper.EntityMetadata metadata = EntityHelper.metadata(found.getMediaId());
-
-                String parentId = metadata.type == SongEntity.class ? EntityHelper.mediaId(new AlbumEntity(metadata.params.get(EntityHelper.EntityMetadata.PARENT_UUID_PARAM), metadata.accountUuid, null, null, null, 0, 0, null, 0, null)) : mediaId;
-                parentId = EntityHelper.mediaId(parentId, Collections.singletonMap(MediaBrowserHelper.PREPEND_ACTIONS, false));
-
-                MediaBrowserHelper.loadChildrenFromService(context, repository, parentId, children -> playerWrapper.newPlayerPreparer().prepare(found, children, mediaId, () -> {
-                }, Throwable::printStackTrace, playWhenReady));
+                onPrepareFromMediaIdResult(mediaId, playWhenReady, found);
             });
         }
     }
 
-    @Override
-    public void onPrepareFromSearch(String query, boolean playWhenReady, @Nullable Bundle extras) {
-        throw new UnsupportedOperationException();
+    private void onPrepareFromMediaIdResult(String mediaId, boolean playWhenReady, MediaBrowserCompat.MediaItem result) {
+        EntityHelper.EntityMetadata metadata = EntityHelper.metadata(result.getMediaId());
+
+        String parentId = metadata.type == SongEntity.class ? EntityHelper.mediaId(new AlbumEntity(metadata.params.get(EntityHelper.EntityMetadata.PARENT_UUID_PARAM), metadata.accountUuid, null, null, null, 0, 0, null, 0, null)) : mediaId;
+        parentId = EntityHelper.mediaId(parentId, Collections.singletonMap(MediaBrowserHelper.PREPEND_ACTIONS, false));
+
+        MediaBrowserHelper.loadChildrenFromService(context, repository, parentId, children -> playerWrapper.newPlayerPreparer().prepare(result, children, mediaId, () -> {
+        }, Throwable::printStackTrace, playWhenReady));
     }
 
     @Override
-    public void onPrepareFromUri(Uri uri, boolean playWhenReady, @Nullable Bundle extras) {
-        throw new UnsupportedOperationException();
+    public void onPrepareFromSearch(@NonNull String query, boolean playWhenReady, @Nullable Bundle extras) {
+        mediaSession.setActive(true);
+        L.i("onPrepareFromSearch: " + query);
+        MediaBrowserHelper.search(context, repository, query, found -> {
+            found.stream().findFirst().ifPresent(r -> {
+                onPrepareFromMediaIdResult(r.getMediaId(), playWhenReady, r);
+            });
+        });
     }
 
     @Override
-    public boolean onCommand(Player player, String command, @Nullable Bundle extras, @Nullable ResultReceiver cb) {
+    public void onPrepareFromUri(@NonNull Uri uri, boolean playWhenReady, @Nullable Bundle extras) {
+        mediaSession.setActive(true);
+        L.i("onPrepareFromUri: " + uri);
+
+        onPrepareFromMediaId(uri.toString(), playWhenReady, extras);
+    }
+
+    @Override
+    public boolean onCommand(@NonNull Player player, @NonNull String command, @Nullable Bundle extras, @Nullable ResultReceiver cb) {
+        mediaSession.setActive(true);
         L.d("onCommand: " + command);
         return false;
+    }
+
+    @Override
+    public void onAddQueueItem(Player player, MediaDescriptionCompat description) {
+        L.d("onAddQueueItem");
+
+    }
+
+    @Override
+    public void onAddQueueItem(Player player, MediaDescriptionCompat description, int index) {
+        L.d("onAddQueueItem @" + index);
+
+    }
+
+    @Override
+    public void onRemoveQueueItem(Player player, MediaDescriptionCompat description) {
+        L.d("onRemoveQueueItem");
+
     }
 }

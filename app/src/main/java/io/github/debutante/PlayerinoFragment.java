@@ -9,7 +9,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
@@ -43,13 +42,9 @@ public class PlayerinoFragment extends BaseFragment {
     private Disposable playbackProgressDisposable;
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
         binding = BindingHelper.bindAndInflate(inflater, container, FragmentPlayerinoBinding::inflate);
 
         changeMediaItemBroadcastReceiver = new ChangeMediaItemBroadcastReceiver(d().repository(), d()::picasso, binding.ivAlbumArt, null, null, binding.tvSong);
@@ -61,12 +56,11 @@ public class PlayerinoFragment extends BaseFragment {
             navController.navigate(R.id.action_f_playerino_to_f_player);
         });
 
-
         return binding.getRoot();
     }
 
     private void playPause(View view) {
-        Player player = d().playerWrapper().player();
+        Player player = ma().playerWrapper().player();
         if (player.isPlaying()) {
             player.pause();
         } else {
@@ -90,7 +84,7 @@ public class PlayerinoFragment extends BaseFragment {
         requireActivity().registerReceiver(changeMediaItemBroadcastReceiver, new IntentFilter(ChangeMediaItemBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
         requireActivity().registerReceiver(changeIsPlayingBroadcastReceiver, new IntentFilter(ChangeIsPlayingBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
 
-        final Player player = d().playerWrapper().player();
+        final Player player = ((MainActivity) requireActivity()).playerWrapper().player();
         MediaItem currentMediaItem = player.getCurrentMediaItem();
         if (currentMediaItem != null) {
             ChangeMediaItemBroadcastReceiver.broadcast(requireActivity(), currentMediaItem.mediaId);

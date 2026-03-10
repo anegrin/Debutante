@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="forced_padding_top">0</dimen>
+    <dimen name="forced_padding_top">0dp</dimen>
     <dimen name="spacing_small">4dp</dimen>
     <dimen name="spacing">8dp</dimen>
     <dimen name="spacing_medium">16dp</dimen>

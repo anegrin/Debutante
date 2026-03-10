@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -37,7 +38,8 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 public class MediaBrowserHelper {
     private static final String RES_PREFIX = "android.resource://" + BuildConfig.APPLICATION_ID + "/drawable/";
 
-    public static final String ROOT_ID = MediaBrowserHelper.class.getSimpleName() + "-ROOT_ID";
+    public static final String ROOT_ID = "__ROOT_ID__";
+    public static final String RECENT_ROOT = "__RECENT_ROOT_ID__";
     public static final String PREVIOUS_SESSION_ID = MediaBrowserHelper.class.getSimpleName() + "-PREVIOUS_SESSION_ID";
     public static final String RECURSIVE_CHILDREN_LOADING = "_rcl";
     public static final String PREPEND_ACTIONS = "_pa";
@@ -67,30 +69,49 @@ public class MediaBrowserHelper {
 
 
     public static void load(final Context context, EntityRepository repository, @NonNull String id, @NonNull Consumer<MediaBrowserCompat.MediaItem> result) {
+        load(context, repository, id, result, null, true);
+    }
+
+    public static void loadFromService(final Context context, EntityRepository repository, @NonNull String id, @NonNull Consumer<MediaBrowserCompat.MediaItem> result) {
+        Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(2));
+        load(context, repository, id, result, scheduler, false);
+    }
+
+    private static void load(final Context context, EntityRepository repository, @NonNull String id, @NonNull Consumer<MediaBrowserCompat.MediaItem> result, Scheduler scheduler, boolean withIcon) {
         log("load, id=" + id);
-        if (!ROOT_ID.equals(id)) {
+        if (id.startsWith(ROOT_ID)) {
+            MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
+                    .setMediaId(id)
+                    .setTitle(context.getString(R.string.app_name))
+                    .setDescription(context.getString(R.string.app_name));
+            if (withIcon) {
+                builder = builder.setIconUri(LOCAL_ICON_URI);
+            }
+            result.accept(new MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+        } else {
             EntityHelper.EntityMetadata metadata = EntityHelper.metadata(id);
 
+            RxHelper rxHelper = scheduler != null ? RxHelper.newInstance(scheduler, scheduler) : RxHelper.defaultInstance();
             if (metadata.type == AccountEntity.class) {
-                RxHelper.defaultInstance().subscribe(repository.findAccountByUuid(metadata.uuid), a -> result.accept(toMediaItem(a)), t -> toastLoadFailure(context, t));
+                rxHelper.subscribe(repository.findAccountByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
             } else if (metadata.type == ArtistEntity.class) {
-                RxHelper.defaultInstance().subscribe(repository.findArtistByUuid(metadata.uuid), a -> result.accept(toMediaItem(a)), t -> toastLoadFailure(context, t));
+                rxHelper.subscribe(repository.findArtistByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
             } else if (metadata.type == AlbumEntity.class) {
-                RxHelper.defaultInstance().subscribe(repository.findAlbumByUuid(metadata.uuid), a -> result.accept(toMediaItem(context, a)), t -> toastLoadFailure(context, t));
+                rxHelper.subscribe(repository.findAlbumByUuid(metadata.uuid), a -> result.accept(toMediaItem(context, a, withIcon)), t -> toastLoadFailure(context, t));
             } else if (metadata.type == SongEntity.class) {
-                RxHelper.defaultInstance().subscribe(repository.findSongByUuid(metadata.uuid), s -> result.accept(toMediaItem(context, s)), t -> toastLoadFailure(context, t));
+                rxHelper.subscribe(repository.findSongByUuid(metadata.uuid), s -> result.accept(toMediaItem(context, s, withIcon)), t -> toastLoadFailure(context, t));
             }
         }
     }
 
     public static void loadChildrenFromService(Context context, EntityRepository repository, @NonNull String parentId, @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result) {
         log("loadChildrenFromService, parentId=" + parentId);
-        Scheduler scheduler = Schedulers.newThread();
-        loadChildren(context, repository, parentId, result, scheduler, scheduler);
+        Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(2));
+        loadChildren(context, repository, parentId, result, scheduler, scheduler, false);
     }
 
     public static void loadChildren(Context context, EntityRepository repository, @NonNull String parentId, @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result) {
-        loadChildren(context, repository, parentId, result, null, null);
+        loadChildren(context, repository, parentId, result, null, null, true);
     }
 
     private static void loadChildren(final Context context,
@@ -98,32 +119,59 @@ public class MediaBrowserHelper {
                                      @NonNull String parentId,
                                      @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result,
                                      Scheduler subscribeOn,
-                                     Scheduler observeOn) {
+                                     Scheduler observeOn,
+                                     boolean withIcon) {
 
         log("loadChildren, parentId=" + parentId);
         if (parentId.startsWith(ROOT_ID)) {
-            sendResultAsync(context, result, repository::getAllAccounts, MediaBrowserHelper::toMediaItem, null, subscribeOn, observeOn);
+            sendResultAsync(context, result, repository::getAllAccounts, a -> toMediaItem(a, withIcon), null, subscribeOn, observeOn, withIcon);
         } else {
             EntityHelper.EntityMetadata parentMetadata = EntityHelper.metadata(parentId);
 
             boolean prependActions = !Boolean.FALSE.toString().equals(parentMetadata.params.get(PREPEND_ACTIONS));
             if (parentMetadata.type == AccountEntity.class) {
                 String parentIdForAction = prependActions && !AccountEntity.LOCAL.uuid().equals(parentMetadata.uuid) ? PREVIOUS_SESSION_ID + parentMetadata.uuid : null;
-                sendResultAsync(context, result, () -> repository.findArtistsByAccountUuid(parentMetadata.uuid), MediaBrowserHelper::toMediaItem, parentIdForAction, subscribeOn, observeOn);
+                sendResultAsync(context, result, () -> repository.findArtistsByAccountUuid(parentMetadata.uuid), a -> toMediaItem(a, withIcon), parentIdForAction, subscribeOn, observeOn, withIcon);
             } else {
                 String parentIdForAction = prependActions ? parentId : null;
                 if (parentMetadata.type == ArtistEntity.class) {
                     boolean loadSongs = Boolean.TRUE.toString().equals(parentMetadata.params.get(RECURSIVE_CHILDREN_LOADING));
                     if (loadSongs) {
-                        sendResultAsync(context, result, () -> repository.findSongsByArtistUuidOrderByYear(parentMetadata.uuid), songEntity -> toMediaItem(context, songEntity), null, subscribeOn, observeOn);
+                        sendResultAsync(context, result, () -> repository.findSongsByArtistUuidOrderByYear(parentMetadata.uuid), songEntity -> toMediaItem(context, songEntity, withIcon), null, subscribeOn, observeOn, withIcon);
                     } else {
-                        sendResultAsync(context, result, () -> repository.findAlbumsByArtistUuidOrderByYear(parentMetadata.uuid), album -> toMediaItem(context, album), parentIdForAction, subscribeOn, observeOn);
+                        sendResultAsync(context, result, () -> repository.findAlbumsByArtistUuidOrderByYear(parentMetadata.uuid), album -> toMediaItem(context, album, withIcon), parentIdForAction, subscribeOn, observeOn, withIcon);
                     }
                 } else if (parentMetadata.type == AlbumEntity.class) {
-                    sendResultAsync(context, result, () -> repository.findSongsByAlbumUuid(parentMetadata.uuid), songEntity -> toMediaItem(context, songEntity), parentIdForAction, subscribeOn, observeOn);
+                    sendResultAsync(context, result, () -> repository.findSongsByAlbumUuid(parentMetadata.uuid), songEntity -> toMediaItem(context, songEntity, withIcon), parentIdForAction, subscribeOn, observeOn, withIcon);
                 }
             }
         }
+    }
+
+    public static void searchFromService(Context context, EntityRepository repository, @NonNull String query, @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result) {
+        log("searchFromService, query=" + query);
+        Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(2));
+        search(context, repository, query, result, scheduler, scheduler, false);
+    }
+
+    public static void search(Context context, EntityRepository repository, @NonNull String query, @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result) {
+        search(context, repository, query, result, null, null, true);
+    }
+
+    private static void search(final Context context,
+                               EntityRepository repository,
+                               @NonNull String query,
+                               @NonNull Consumer<List<MediaBrowserCompat.MediaItem>> result,
+                               Scheduler subscribeOn,
+                               Scheduler observeOn,
+                               boolean withIcon) {
+        log("search, query=" + query);
+
+        if (StringUtils.isEmpty(query)) {
+            result.accept(Collections.emptyList());
+        }
+        sendResultAsync(context, result, () -> repository.findAlbumsByQuery(query), albumEntity -> toMediaItem(context, albumEntity, withIcon), null, subscribeOn, observeOn, withIcon);
+
     }
 
     private static <T extends BaseEntity> void sendResultAsync(Context context,
@@ -132,7 +180,8 @@ public class MediaBrowserHelper {
                                                                Function<T, MediaBrowserCompat.MediaItem> converter,
                                                                String parentIdForActions,
                                                                Scheduler subscribeOn,
-                                                               Scheduler observeOn) {
+                                                               Scheduler observeOn,
+                                                               boolean withIcon) {
         log("sendResultAsync, parentIdForActions=" + parentIdForActions);
 
         RxHelper rxHelper = subscribeOn != null && observeOn != null ? RxHelper.newInstance(subscribeOn, observeOn) : RxHelper.defaultInstance();
@@ -146,17 +195,21 @@ public class MediaBrowserHelper {
 
                 if (prependActions) {
                     if (parentIdForActions.startsWith(PREVIOUS_SESSION_ID)) {
-                        items.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
+                        MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
                                 .setMediaId(parentIdForActions)
-                                .setTitle(context.getString(R.string.play_previous))
-                                .setIconUri(PLAY_ICON_URI)
-                                .build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
+                                .setTitle(context.getString(R.string.play_previous));
+                        if (withIcon) {
+                            builder = builder.setIconUri(PLAY_ICON_URI);
+                        }
+                        items.add(new MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
                     } else {
-                        items.add(new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
+                        MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
                                 .setMediaId(EntityHelper.mediaId(parentIdForActions, Collections.singletonMap(MediaBrowserHelper.RECURSIVE_CHILDREN_LOADING, true)))
-                                .setTitle(context.getString(R.string.play_all))
-                                .setIconUri(PLAY_ICON_URI)
-                                .build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
+                                .setTitle(context.getString(R.string.play_all));
+                        if (withIcon) {
+                            builder = builder.setIconUri(PLAY_ICON_URI);
+                        }
+                        items.add(new MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
                     }
                 }
 
@@ -169,39 +222,54 @@ public class MediaBrowserHelper {
         }, t -> toastLoadFailure(context, t));
     }
 
-    private static MediaBrowserCompat.MediaItem toMediaItem(AccountEntity accountEntity) {
+    private static MediaBrowserCompat.MediaItem toMediaItem(AccountEntity accountEntity, boolean withIcon) {
         String mediaId = EntityHelper.mediaId(accountEntity);
-        return new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
+        MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
                 .setMediaId(mediaId)
+                .setMediaUri(Uri.parse(mediaId))
                 .setTitle(accountEntity.alias)
-                .setIconUri(LOCAL_ACCOUNT_MEDIA_ID.equals(mediaId) ? LOCAL_ICON_URI : ACCOUNT_ICON_URI)
-                .setDescription(accountEntity.username + " @ " + accountEntity.url)
-                .build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE);
+                .setDescription(accountEntity.username + " @ " + accountEntity.url);
+        if (withIcon) {
+            builder = builder.setIconUri(LOCAL_ACCOUNT_MEDIA_ID.equals(mediaId) ? LOCAL_ICON_URI : ACCOUNT_ICON_URI);
+        }
+        return new MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE);
     }
 
-    private static MediaBrowserCompat.MediaItem toMediaItem(ArtistEntity artistEntity) {
-        return new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
-                .setMediaId(EntityHelper.mediaId(artistEntity))
-                .setTitle(artistEntity.name)
-                .setIconUri(ARTIST_ICON_URI)
-                .build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE);
+    private static MediaBrowserCompat.MediaItem toMediaItem(ArtistEntity artistEntity, boolean withIcon) {
+        String mediaId = EntityHelper.mediaId(artistEntity);
+        MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
+                .setMediaId(mediaId)
+                .setMediaUri(Uri.parse(mediaId))
+                .setTitle(artistEntity.name);
+        if (withIcon) {
+            builder = builder.setIconUri(ARTIST_ICON_URI);
+        }
+        return new MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE);
     }
 
-    private static MediaBrowserCompat.MediaItem toMediaItem(Context context, AlbumEntity album) {
-        return new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
-                .setMediaId(EntityHelper.mediaId(album))
-                .setTitle(album.year > 0 ? String.format(context.getString(R.string.name_year_pattern), album.name, album.year) : album.name)
-                .setIconUri(ALBUM_ICON_URI)
-                .build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE);
+    private static MediaBrowserCompat.MediaItem toMediaItem(Context context, AlbumEntity album, boolean withIcon) {
+        String mediaId = EntityHelper.mediaId(album);
+        MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
+                .setMediaId(mediaId)
+                .setMediaUri(Uri.parse(mediaId))
+                .setTitle(album.year > 0 ? String.format(context.getString(R.string.name_year_pattern), album.name, album.year) : album.name);
+        if (withIcon) {
+            builder = builder.setIconUri(ALBUM_ICON_URI);
+        }
+        return new MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_BROWSABLE);
     }
 
-    private static MediaBrowserCompat.MediaItem toMediaItem(Context context, SongEntity songEntity) {
-        return new MediaBrowserCompat.MediaItem(new MediaDescriptionCompat.Builder()
-                .setMediaId(EntityHelper.mediaId(songEntity))
+    private static MediaBrowserCompat.MediaItem toMediaItem(Context context, SongEntity songEntity, boolean withIcon) {
+        String mediaId = EntityHelper.mediaId(songEntity);
+        MediaDescriptionCompat.Builder builder = new MediaDescriptionCompat.Builder()
+                .setMediaId(mediaId)
+                .setMediaUri(Uri.parse(mediaId))
                 .setTitle(songEntity.title)
-                .setDescription(String.format(context.getString(R.string.name_duration_pattern), songEntity.album, DurationFormatUtils.formatDuration(songEntity.duration * 1000L, "mm:ss")))
-                .setIconUri(SONG_ICON_URI)
-                .build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
+                .setDescription(String.format(context.getString(R.string.name_duration_pattern), songEntity.album, DurationFormatUtils.formatDuration(songEntity.duration * 1000L, "mm:ss")));
+        if (withIcon) {
+            builder = builder.setIconUri(SONG_ICON_URI);
+        }
+        return new MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
     }
 
     private static void toastLoadFailure(Context context, Throwable t) {

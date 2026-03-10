@@ -47,7 +47,7 @@ public class PlayerFragment extends BaseFragment {
                              Bundle savedInstanceState) {
         binding = BindingHelper.bindAndInflate(inflater, container, FragmentPlayerBinding::inflate);
 
-        binding.spvPlayer.setPlayer(((Debutante) requireActivity().getApplication()).playerWrapper().player());
+        binding.spvPlayer.setPlayer(ma().playerWrapper().player());
         binding.spvPlayer.showController();
 
         if (DeviceHelper.needsStopPlayerButton()) {
@@ -55,7 +55,7 @@ public class PlayerFragment extends BaseFragment {
             ibStop.setVisibility(View.VISIBLE);
             ibStop.setOnClickListener(v -> {
                 binding.spvPlayer.getPlayer().stop();
-                d().mediaSession().setActive(false);
+                ma().mediaSession().setActive(false);
             });
         }
 
@@ -79,7 +79,7 @@ public class PlayerFragment extends BaseFragment {
         requireActivity().registerReceiver(switchPlayerBroadcastReceiver, new IntentFilter(SwitchPlayerBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
         requireActivity().registerReceiver(changeMediaItemBroadcastReceiver, new IntentFilter(ChangeMediaItemBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
 
-        MediaItem currentMediaItem = d().playerWrapper().player().getCurrentMediaItem();
+        MediaItem currentMediaItem = ((MainActivity) requireActivity()).playerWrapper().player().getCurrentMediaItem();
         if (currentMediaItem != null) {
             ChangeMediaItemBroadcastReceiver.broadcast(requireActivity(), currentMediaItem.mediaId);
         }

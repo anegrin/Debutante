@@ -33,7 +33,7 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
     private final Function<String, File> cachedFileResolver;
 
     public MediaQueueNavigator(Context context, MediaSessionCompat mediaSession, AppConfig appConfig, Function<String, File> cachedFileResolver) {
-        super(mediaSession, Integer.MAX_VALUE);
+        super(mediaSession, 4096);
         this.appConfig = appConfig;
         this.cachedFileResolver = cachedFileResolver;
 
@@ -47,15 +47,16 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
 
     @Override
     public MediaDescriptionCompat getMediaDescription(Player player, int windowIndex) {
-
         MediaItem mediaItem = player.getMediaItemAt(windowIndex);
 
         Bundle extras = new Bundle();
-        if (mediaItem.mediaMetadata.trackNumber != null) {
-            extras.putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, mediaItem.mediaMetadata.trackNumber);
-        }
+
+        extras.putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, mediaItem.mediaId);
+
+        extras.putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, windowIndex + 1L);
+        extras.putLong(MediaMetadataCompat.METADATA_KEY_NUM_TRACKS, player.getMediaItemCount());
         if (mediaItem.mediaMetadata.discNumber != null) {
-            extras.putLong(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, mediaItem.mediaMetadata.discNumber);
+            extras.putInt(MediaMetadataCompat.METADATA_KEY_DISC_NUMBER, mediaItem.mediaMetadata.discNumber);
         }
 
         if (mediaItem.mediaMetadata.extras != null) {
@@ -114,6 +115,6 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
     @SuppressLint("MissingPermission")//checked on constructor
     public boolean isA2DPConnected() {
         return bluetoothAdapter != null && bluetoothAdapter.isEnabled()
-                && bluetoothAdapter.getProfileConnectionState(BluetoothHeadset.A2DP) == BluetoothHeadset.STATE_CONNECTED;
+                && bluetoothAdapter.getProfileConnectionState(BluetoothHeadset.A2DP) == BluetoothAdapter.STATE_CONNECTED;
     }
 }

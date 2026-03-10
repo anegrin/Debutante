@@ -33,6 +33,6 @@ public class ChangeIsPlayingBroadcastReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         L.i("Receiving " + intent.getAction() + " " + L.toString(intent.getExtras()));
         boolean isPlaying = intent.getBooleanExtra(PLAYING_KEY, false);
-        ibPlayPause.setImageResource(isPlaying ? R.drawable.exo_styled_controls_pause : R.drawable.exo_styled_controls_play);
+            ibPlayPause.setImageResource(isPlaying ? R.drawable.exo_styled_controls_pause : R.drawable.exo_styled_controls_play);
     }
 }

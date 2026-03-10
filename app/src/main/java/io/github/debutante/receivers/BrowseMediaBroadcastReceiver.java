@@ -1,5 +1,7 @@
 package io.github.debutante.receivers;
 
+import static io.github.debutante.helper.MediaBrowserHelper.ROOT_ID;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -53,11 +55,11 @@ public class BrowseMediaBroadcastReceiver extends BroadcastReceiver {
 
         String mediaId = intent.getStringExtra(MEDIA_ID_KEY);
 
-        String parentId = StringUtils.isNotEmpty(mediaId) ? mediaId : MediaBrowserHelper.ROOT_ID;
+        String parentId = StringUtils.isNotEmpty(mediaId) ? mediaId : ROOT_ID;
 
         MediaBrowserHelper.loadChildren(context, repository, parentId, children -> {
             final BrowseMediaViewModel browseMediaViewModel;
-            if (MediaBrowserHelper.ROOT_ID.equals(parentId)) {
+            if (parentId.startsWith(ROOT_ID)) {
                 browseMediaViewModel = viewModelProvider.get(AccountsFragment.ACCOUNTS_KEY, BrowseMediaViewModel.class);
             } else {
                 browseMediaViewModel = viewModelProvider.get(getViewModelKey(EntityHelper.metadata(parentId).type), BrowseMediaViewModel.class);

@@ -1,6 +1,8 @@
 
 package io.github.debutante.receivers;
 
+import static io.github.debutante.helper.DeviceHelper.receiversCanStartForegroundServices;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -126,9 +128,11 @@ public class ChangeMediaItemBroadcastReceiver extends BroadcastReceiver {
             Intent intent = new Intent(ChangeMediaItemBroadcastReceiver.ACTION);
             intent.putExtra(MEDIA_ID_KEY, mediaItemId);
             context.sendBroadcast(Obj.tap(intent, ChangeMediaItemBroadcastReceiver::logBroadcast));
-            Intent service = new Intent(context, PlayerService.class);
-            service.setAction(PlayerService.ACTION_WAKE);
-            context.startForegroundService(service);
+            if (receiversCanStartForegroundServices()) {
+                Intent service = new Intent(context, PlayerService.class);
+                service.setAction(PlayerService.ACTION_WAKE);
+                context.startForegroundService(service);
+            }
         }
     }
 }

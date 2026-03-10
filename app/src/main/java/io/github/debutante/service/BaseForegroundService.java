@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.graphics.drawable.Icon;
 import android.os.IBinder;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.Optional;
@@ -24,63 +25,80 @@ import io.github.debutante.helper.Obj;
 
 public abstract class BaseForegroundService extends Service {
 
-    private final AtomicBoolean receiverLock = new AtomicBoolean(false);
+    private final AtomicBoolean startedLock = new AtomicBoolean(false);
 
-    public static final String ACTION_STOP = BaseForegroundService.class.getSimpleName() + "-ACTION_STOP";
-    public static final int STOP_SERVICE_REQUEST_CODE = 1;
+    private static final int STOP_SERVICE_REQUEST_CODE = 1;
+    private final String ACTION_STOP = getClass().getSimpleName() + "-ACTION_STOP";
 
     private final StopBroadcastReceiver stopBroadcastReceiver = new StopBroadcastReceiver();
 
     private final int notifictionContentResId;
     private final int notificationId;
     private final boolean progressing;
+    private int foregroundServiceType;
 
-    public BaseForegroundService(int notifictionContentResId, int notificationId) {
-        this(notifictionContentResId, notificationId, false);
+    public BaseForegroundService(int notifictionContentResId, int notificationId, int foregroundServiceType) {
+        this(notifictionContentResId, notificationId, foregroundServiceType, false);
     }
 
-    public BaseForegroundService(int notifictionContentResId, int notificationId, boolean progressing) {
+    public BaseForegroundService(int notifictionContentResId, int notificationId, int foregroundServiceType, boolean progressing) {
         this.notifictionContentResId = notifictionContentResId;
         this.notificationId = notificationId;
+        this.foregroundServiceType = foregroundServiceType;
         this.progressing = progressing;
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        L.i("Binding " + getClass().getSimpleName());
+        return new LocalBinder<>(this);
+    }
+
+    @NonNull
+    static Notification buildNotification(Context context, Optional<Intent> activityIntent, int notifictionContentResId, boolean progressing, @Nullable PendingIntent deleteIntent) {
+        Notification.Builder builder = new Notification.Builder(context, Debutante.createNotificationChannel(context, Debutante.NOTIFICATION_CHANNEL_ID))
+                .setContentTitle(context.getText(R.string.app_name))
+                .setContentText(context.getString(notifictionContentResId))
+                .setSmallIcon(R.drawable.ic_launcher_notification)
+                .setContentIntent(activityIntent
+                        .map(i -> PendingIntent.getActivity(context, MediaDescriptionAdapter.OPEN_ACTIVITY_INTENT_REQUEST_CODE, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
+                        .orElse(null)
+                )
+                .setProgress(0, 0, progressing)
+                .setAutoCancel(false);
+
+        if (deleteIntent != null) {
+            builder = builder
+                    .addAction(new Notification.Action.Builder(Icon.createWithResource(context, android.R.drawable.ic_menu_close_clear_cancel),
+                            context.getString(R.string.player_service_stop),
+                            deleteIntent)
+                            .build())
+                    .setDeleteIntent(deleteIntent);
+        }
+
+        Notification notification = builder.build();
+        return notification;
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
 
-        if (!receiverLock.getAndSet(true)) {
+        if (!startedLock.getAndSet(true)) {
             L.i("Registering stop service receiver");
             registerReceiver(stopBroadcastReceiver, new IntentFilter(ACTION_STOP), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
+
+            PendingIntent deleteIntent = PendingIntent.getBroadcast(this, STOP_SERVICE_REQUEST_CODE, new Intent(ACTION_STOP), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+            Notification notification = buildNotification(this, getActivityIntent(), notifictionContentResId, progressing, deleteIntent);
+
+            if (DeviceHelper.needsForegroundServiceTypeOnStart()) {
+                startForeground(notificationId, notification, foregroundServiceType);
+            } else {
+                startForeground(notificationId, notification);
+            }
         }
-
-        PendingIntent deleteIntent = PendingIntent.getBroadcast(this, STOP_SERVICE_REQUEST_CODE, new Intent(ACTION_STOP), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        Notification notification =
-                new Notification.Builder(this, Debutante.createNotificationChannel(this, Debutante.NOTIFICATION_CHANNEL_ID))
-                        .setContentTitle(getText(R.string.app_name))
-                        .setContentText(getString(notifictionContentResId))
-                        .setSmallIcon(R.drawable.ic_launcher_notification)
-                        .addAction(new Notification.Action.Builder(Icon.createWithResource(this, android.R.drawable.ic_menu_close_clear_cancel),
-                                getString(R.string.player_service_stop),
-                                deleteIntent)
-                                .build())
-                        .setContentIntent(getActivityIntent()
-                                .map(i -> PendingIntent.getActivity(this, MediaDescriptionAdapter.OPEN_ACTIVITY_INTENT_REQUEST_CODE, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
-                                .orElse(null)
-                        )
-                        .setDeleteIntent(deleteIntent)
-                        .setProgress(0, 0, progressing)
-                        .setAutoCancel(false)
-                        .build();
-
-        startForeground(notificationId, notification);
         return START_NOT_STICKY;
     }
 
@@ -100,7 +118,7 @@ public abstract class BaseForegroundService extends Service {
     }
 
     private void unregisterReceiver() {
-        if (receiverLock.getAndSet(false)) {
+        if (startedLock.getAndSet(false)) {
             L.i("Unregistering stop service receiver");
             unregisterReceiver(stopBroadcastReceiver);
         }

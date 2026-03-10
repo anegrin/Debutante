@@ -3,6 +3,7 @@ package io.github.debutante.helper;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -18,6 +19,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +29,7 @@ import io.github.debutante.persistence.PlayerState;
 import io.github.debutante.persistence.entities.AccountEntity;
 import io.github.debutante.persistence.entities.SongEntity;
 import io.github.debutante.service.HTTPDService;
+import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.functions.Consumer;
 
@@ -36,12 +39,26 @@ public class PlayerPreparer {
     private final PlayerWrapper playerWrapper;
     private final EntityRepository repository;
     private final AppConfig appConfig;
+    private final Handler mh;
 
     PlayerPreparer(Context context, PlayerWrapper playerWrapper, EntityRepository repository, AppConfig appConfig) {
+        mh = new Handler(context.getMainLooper());
         this.context = context;
         this.playerWrapper = playerWrapper;
         this.repository = repository;
         this.appConfig = appConfig;
+    }
+
+    public void prepare(Action onComplete, Consumer<? super Throwable> onError) {
+        L.i("prepare");
+        RxHelper.defaultInstance().subscribe(Completable.fromRunnable(() -> {
+            mh.post(() -> {
+                Player player = playerWrapper.player();
+                player.setPlayWhenReady(false);
+                player.setMediaItems(Collections.emptyList());
+                player.prepare();
+            });
+        }), onComplete, onError);
     }
 
     public void prepare(MediaBrowserCompat.MediaItem parentMediaItem,
@@ -72,7 +89,7 @@ public class PlayerPreparer {
                         boolean playWhenReady,
                         boolean saveSate) {
 
-        L.i("preaparing player;  parentMediaItem=" + Optional.ofNullable(parentMediaItem).map(MediaBrowserCompat.MediaItem::getMediaId).orElse(null)
+        L.i("preparing player;  parentMediaItem=" + Optional.ofNullable(parentMediaItem).map(MediaBrowserCompat.MediaItem::getMediaId).orElse(null)
                 + ", mediaItems.size=" + CollectionUtils.size(mediaItems)
                 + ", mediaItemId=" + mediaItemId
                 + ", startPositionMs=" + startPositionMs
@@ -129,18 +146,29 @@ public class PlayerPreparer {
                 }
             }
 
-
             if (saveSate) {
                 PlayerState.persistMediaItems(context, a.uuid(), parentMediaItem, mediaItems);
                 PlayerState.persistCurrentMediaItemId(context, a.uuid(), mediaItemId);
             }
 
-            Player player = playerWrapper.player();
-            player.setPlayWhenReady(playWhenReady);
-            player.setMediaItems(items, windowIndex, startPositionMs);
-            player.prepare();
+            final int fWindowIndex = windowIndex;
+            mh.post(() -> {
+                Player player = playerWrapper.player();
+                player.setPlayWhenReady(playWhenReady);
+                player.setMediaItems(items, fWindowIndex, startPositionMs);
+                if (player.getAvailableCommands().contains(Player.COMMAND_SET_PLAYLIST_METADATA)) {
+                    player.setPlaylistMetadata(new MediaMetadata.Builder()
+                            .setTotalTrackCount(items.size())
+                            .build());
+                }
+                player.prepare();
 
-            onComplete.run();
+                try {
+                    onComplete.run();
+                } catch (Throwable e) {
+                    L.e("fail to run " + onComplete, e);
+                }
+            });
         }, onError);
     }
 

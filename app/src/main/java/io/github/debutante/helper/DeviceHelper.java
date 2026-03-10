@@ -7,6 +7,10 @@ public final class DeviceHelper {
     private DeviceHelper() {
     }
 
+    public static boolean hasTypeSafeGetParcelableExtra() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
+    }
+
     public static boolean requireSpecificReadAudioPermissions() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
     }
@@ -23,8 +27,16 @@ public final class DeviceHelper {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
     }
 
+    public static boolean needsForegroundServiceTypeOnStart() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+    }
+
     public static boolean requireBTPermissions() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
+    }
+
+    public static boolean receiversCanStartForegroundServices() {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S;
     }
 
     public static boolean doNotRequireBTPermissions() {

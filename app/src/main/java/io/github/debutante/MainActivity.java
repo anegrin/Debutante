@@ -2,12 +2,17 @@ package io.github.debutante;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.view.Menu;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -36,11 +41,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.github.debutante.databinding.ActivityMainBinding;
 import io.github.debutante.helper.BindingHelper;
 import io.github.debutante.helper.DeviceHelper;
 import io.github.debutante.helper.EntityHelper;
+import io.github.debutante.helper.Obj;
 import io.github.debutante.helper.PlayerWrapper;
 import io.github.debutante.helper.RxHelper;
 import io.github.debutante.helper.URIHelper;
@@ -51,6 +59,8 @@ import io.github.debutante.persistence.entities.AccountEntity;
 import io.github.debutante.receivers.BrowseMediaBroadcastReceiver;
 import io.github.debutante.receivers.CastMenuItemBroadcastReceiver;
 import io.github.debutante.receivers.PlayMediaBroadcastReceiver;
+import io.github.debutante.service.LocalBinder;
+import io.github.debutante.service.MediaService;
 
 public class MainActivity extends BaseActivity {
 
@@ -59,11 +69,15 @@ public class MainActivity extends BaseActivity {
     private static final Map<Integer, Boolean> MENU_ITEMS_STATES = new HashMap<>();
 
     private ActivityMainBinding binding;
-    private BroadcastReceiver browseMediaBroadcastReceiver;
-    private PlayMediaBroadcastReceiver playMediaBroadcastReceiver;
-    private CastMenuItemBroadcastReceiver castMenuItemBroadcastReceiver;
     private NavController mainNavController;
     private NavController playerNavController;
+    private final AtomicBoolean serviceBound = new AtomicBoolean(false);
+    private final AtomicReference<BroadcastReceiver> playMediaBroadcastReceiverRef = new AtomicReference<>();
+    private final AtomicReference<BroadcastReceiver> browseMediaBroadcastReceiverRef = new AtomicReference<>();
+    private final AtomicReference<BroadcastReceiver> castMenuItemBroadcastReceiverRef = new AtomicReference<>();
+    private PlayerWrapper playerWrapper;
+    private ServiceConnection serviceConnection;
+    private MediaSessionCompat mediaSession;
 
     public MainActivity() {
         super(false);
@@ -72,13 +86,10 @@ public class MainActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = BindingHelper.bindAndSetContent(this, ActivityMainBinding::inflate);
-        binding.bCreateAccount.setOnClickListener(this::onCreate);
-        binding.bLocalOnly.setOnClickListener(this::onLocalOnlyCreate);
 
         ActivityResultLauncher<String> activityResultLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
             if (!granted) {
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(MainActivity.this)
                         .setTitle(R.string.app_name)
                         .setMessage(String.format(getString(R.string.require_post_notification), getString(R.string.app_name)))
                         .setPositiveButton(android.R.string.ok, null)
@@ -91,27 +102,79 @@ public class MainActivity extends BaseActivity {
             activityResultLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
         }
 
+        Intent intent = new Intent(this, MediaService.class).setAction(MediaService.class.getName());
+        serviceConnection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                MediaService mediaService = ((LocalBinder<MediaService>) service).getService();
+                playerWrapper = mediaService.playerWrapper();
+                playerWrapper.setOptionalOffloadSchedulingEnabled(true);
+                mediaSession = mediaService.mediaSession();
+
+                binding = BindingHelper.bindAndSetContent(MainActivity.this, ActivityMainBinding::inflate);
+                binding.bCreateAccount.setOnClickListener(MainActivity.this::onCreate);
+                binding.bLocalOnly.setOnClickListener(MainActivity.this::onLocalOnlyCreate);
+
+                doResume();
+                serviceBound.set(true);
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                serviceBound.set(false);
+            }
+        };
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    public PlayerWrapper playerWrapper() {
+        return playerWrapper;
+    }
+
+    public MediaSessionCompat mediaSession() {
+        return mediaSession;
+    }
+
+    @Override
+    protected void onDestroy() {
+        unbindService(serviceConnection);
+        super.onDestroy();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
-        d().playerWrapper().setOptionalOffloadSchedulingEnabled(true);
-
         ViewModelProvider viewModelProvider = new ViewModelProvider(this);
         PlayMediaViewModel playMediaViewModel = viewModelProvider.get(PLAY_VIEW_MODEL_KEY, PlayMediaViewModel.class);
-        playMediaBroadcastReceiver = new PlayMediaBroadcastReceiver(playMediaViewModel, d().repository());
-        registerReceiver(playMediaBroadcastReceiver, new IntentFilter(PlayMediaBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
 
-        browseMediaBroadcastReceiver = new BrowseMediaBroadcastReceiver(viewModelProvider, d().repository());
-        registerReceiver(browseMediaBroadcastReceiver, new IntentFilter(BrowseMediaBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
+        playMediaBroadcastReceiverRef.set(Obj.tap(new PlayMediaBroadcastReceiver(playMediaViewModel, d().repository()),
+                r -> registerReceiver(r, new IntentFilter(PlayMediaBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED))
+        );
 
-        castMenuItemBroadcastReceiver = new CastMenuItemBroadcastReceiver(b -> {
-            MENU_ITEMS_STATES.put(R.id.mi_cast, b);
-            invalidateOptionsMenu();
-        });
-        registerReceiver(castMenuItemBroadcastReceiver, new IntentFilter(CastMenuItemBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
+        browseMediaBroadcastReceiverRef.set(Obj.tap(new BrowseMediaBroadcastReceiver(viewModelProvider, d().repository()),
+                r -> registerReceiver(r, new IntentFilter(BrowseMediaBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED)))
+        ;
+
+        castMenuItemBroadcastReceiverRef.set(Obj.tap(new CastMenuItemBroadcastReceiver(b -> {
+                            MENU_ITEMS_STATES.put(R.id.mi_cast, b);
+                            invalidateOptionsMenu();
+                        }),
+                        r -> registerReceiver(r, new IntentFilter(CastMenuItemBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED))
+        );
+
+        MutableLiveData<PlayMediaViewModel.Result> playLiveData = playMediaViewModel.get();
+        if (!playLiveData.hasActiveObservers()) {
+
+            Observer<PlayMediaViewModel.Result> observer = r -> enqueueAndPlay(r.parentMediaItem, r.mediaItems, r.mediaItemId);
+            playLiveData.observe(this, observer);
+        }
+
+        if (serviceBound.get()) {
+            doResume();
+        }
+    }
+
+    private void doResume() {
 
         NavController.OnDestinationChangedListener destinationChangedListener = new DestinationChangedListener();
 
@@ -130,13 +193,6 @@ public class MainActivity extends BaseActivity {
             }
         });
 
-        MutableLiveData<PlayMediaViewModel.Result> playLiveData = playMediaViewModel.get();
-        if (!playLiveData.hasActiveObservers()) {
-
-            Observer<PlayMediaViewModel.Result> observer = r -> enqueueAndPlay(r.parentMediaItem, r.mediaItems, r.mediaItemId);
-            playLiveData.observe(this, observer);
-        }
-
         RxHelper.defaultInstance().subscribe(d().repository().hasAccounts(), b -> {
             if (b) {
                 onAccounts();
@@ -149,10 +205,13 @@ public class MainActivity extends BaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        d().playerWrapper().setOptionalOffloadSchedulingEnabled(false);
-        unregisterReceiver(playMediaBroadcastReceiver);
-        unregisterReceiver(browseMediaBroadcastReceiver);
-        unregisterReceiver(castMenuItemBroadcastReceiver);
+        if (playerWrapper != null) {
+            playerWrapper.setOptionalOffloadSchedulingEnabled(false);
+        }
+
+        Optional.ofNullable(playMediaBroadcastReceiverRef.getAndSet(null)).ifPresent(this::unregisterReceiver);
+        Optional.ofNullable(browseMediaBroadcastReceiverRef.getAndSet(null)).ifPresent(this::unregisterReceiver);
+        Optional.ofNullable(castMenuItemBroadcastReceiverRef.getAndSet(null)).ifPresent(this::unregisterReceiver);
     }
 
     @Override
@@ -194,7 +253,7 @@ public class MainActivity extends BaseActivity {
         binding.llWelcome.setVisibility(View.GONE);
         binding.llBrowsing.setVisibility(View.VISIBLE);
 
-        if (!d().playerWrapper().player().isPlaying() && !d().playerWrapper().isCasting()) {
+        if (!playerWrapper.player().isPlaying() && !playerWrapper.isCasting()) {
             Optional<Pair<MediaBrowserCompat.MediaItem, List<MediaBrowserCompat.MediaItem>>> mediaItems = PlayerState.loadMediaItems(this, Optional.empty());
             Optional<String> currentMediaItemId = PlayerState.loadCurrentMediaItemId(this, Optional.empty());
             mediaItems.ifPresent(p -> enqueue(p.getKey(), p.getValue(), currentMediaItemId.orElse(null)));
@@ -211,8 +270,11 @@ public class MainActivity extends BaseActivity {
 
     private void handlePlayerIntent(Intent intent) {
 
-        PlayerWrapper playerWrapper = d().playerWrapper();
-        if (playerWrapper.player().getMediaItemCount() > 0 || playerWrapper.isCasting()) {
+        if (!serviceBound.get()) {
+            return;
+        }
+
+         if (playerWrapper != null && (playerWrapper.player().getMediaItemCount() > 0 || playerWrapper.isCasting())) {
             binding.llPlayer.setVisibility(View.VISIBLE);
         } else {
             binding.llPlayer.setVisibility(View.GONE);
@@ -252,11 +314,11 @@ public class MainActivity extends BaseActivity {
 
         Long position = mediaIdAndPosition.filter(kv -> kv.getKey().equals(mediaItemId)).map(Pair::getValue).orElse(C.TIME_UNSET);
 
-        d().playerWrapper().newPlayerPreparer().prepare(parentMediaItem, mediaItems, mediaItemId, position, () -> binding.llPlayer.setVisibility(View.VISIBLE), this::toastLoadFailure, false, false);
+        playerWrapper.newPlayerPreparer().prepare(parentMediaItem, mediaItems, mediaItemId, position, () -> binding.llPlayer.setVisibility(View.VISIBLE), this::toastLoadFailure, false, false);
     }
 
     private void enqueueAndPlay(MediaBrowserCompat.MediaItem parentMediaItem, List<MediaBrowserCompat.MediaItem> mediaItems, String mediaItemId) {
-        d().playerWrapper().newPlayerPreparer().prepareAndPlay(parentMediaItem, mediaItems, mediaItemId, () -> binding.llPlayer.setVisibility(View.VISIBLE), this::toastLoadFailure);
+        playerWrapper.newPlayerPreparer().prepareAndPlay(parentMediaItem, mediaItems, mediaItemId, () -> binding.llPlayer.setVisibility(View.VISIBLE), this::toastLoadFailure);
     }
 
     private final class DestinationChangedListener implements NavController.OnDestinationChangedListener {
@@ -282,7 +344,7 @@ public class MainActivity extends BaseActivity {
                     }
                 } else if (destinationId == R.id.f_player) {
 
-                    MediaItem currentMediaItem = d().playerWrapper().player().getCurrentMediaItem();
+                    MediaItem currentMediaItem = playerWrapper.player().getCurrentMediaItem();
 
                     if (currentMediaItem != null && !URIHelper.isRemote(currentMediaItem.mediaMetadata.extras.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI))) {
                         local = true;
