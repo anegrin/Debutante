@@ -10,6 +10,7 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -48,6 +49,7 @@ import io.github.debutante.databinding.ActivityMainBinding;
 import io.github.debutante.helper.BindingHelper;
 import io.github.debutante.helper.DeviceHelper;
 import io.github.debutante.helper.EntityHelper;
+import io.github.debutante.helper.L;
 import io.github.debutante.helper.Obj;
 import io.github.debutante.helper.PlayerWrapper;
 import io.github.debutante.helper.RxHelper;
@@ -60,7 +62,7 @@ import io.github.debutante.receivers.BrowseMediaBroadcastReceiver;
 import io.github.debutante.receivers.CastMenuItemBroadcastReceiver;
 import io.github.debutante.receivers.PlayMediaBroadcastReceiver;
 import io.github.debutante.service.LocalBinder;
-import io.github.debutante.service.MediaService;
+import io.github.debutante.service.PlayerService;
 
 public class MainActivity extends BaseActivity {
 
@@ -76,7 +78,7 @@ public class MainActivity extends BaseActivity {
     private final AtomicReference<BroadcastReceiver> browseMediaBroadcastReceiverRef = new AtomicReference<>();
     private final AtomicReference<BroadcastReceiver> castMenuItemBroadcastReceiverRef = new AtomicReference<>();
     private PlayerWrapper playerWrapper;
-    private ServiceConnection serviceConnection;
+    private ServiceConnection mediaServiceConnection;
     private MediaSessionCompat mediaSession;
 
     public MainActivity() {
@@ -85,6 +87,7 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        L.i("MainActivity.onCreate");
         super.onCreate(savedInstanceState);
 
         ActivityResultLauncher<String> activityResultLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
@@ -102,14 +105,19 @@ public class MainActivity extends BaseActivity {
             activityResultLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
         }
 
-        Intent intent = new Intent(this, MediaService.class).setAction(MediaService.class.getName());
-        serviceConnection = new ServiceConnection() {
+        Intent intent = new Intent(this, PlayerService.class).setAction(PlayerService.class.getName());
+        mediaServiceConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                MediaService mediaService = ((LocalBinder<MediaService>) service).getService();
+                try {
+                    service.linkToDeath(() -> mediaServiceConnection = null, 0);
+                } catch (RemoteException e) {
+                }
+                PlayerService mediaService = ((LocalBinder<PlayerService>) service).getService();
+
                 playerWrapper = mediaService.playerWrapper();
                 playerWrapper.setOptionalOffloadSchedulingEnabled(true);
-                mediaSession = mediaService.mediaSession();
+                mediaSession = d().getSafeMediaSession();
 
                 binding = BindingHelper.bindAndSetContent(MainActivity.this, ActivityMainBinding::inflate);
                 binding.bCreateAccount.setOnClickListener(MainActivity.this::onCreate);
@@ -124,7 +132,7 @@ public class MainActivity extends BaseActivity {
                 serviceBound.set(false);
             }
         };
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        bindService(intent, mediaServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
     public PlayerWrapper playerWrapper() {
@@ -137,7 +145,11 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
-        unbindService(serviceConnection);
+        L.i("MainActivity.onDestroy");
+        if (mediaServiceConnection != null) {
+            unbindService(mediaServiceConnection);
+            mediaServiceConnection = null;
+        }
         super.onDestroy();
     }
 
@@ -274,7 +286,7 @@ public class MainActivity extends BaseActivity {
             return;
         }
 
-         if (playerWrapper != null && (playerWrapper.player().getMediaItemCount() > 0 || playerWrapper.isCasting())) {
+        if (playerWrapper != null && (playerWrapper.player().getMediaItemCount() > 0 || playerWrapper.isCasting())) {
             binding.llPlayer.setVisibility(View.VISIBLE);
         } else {
             binding.llPlayer.setVisibility(View.GONE);

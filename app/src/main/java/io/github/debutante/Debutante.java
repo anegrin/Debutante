@@ -6,9 +6,6 @@ import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.media.Session2Token;
-import android.media.session.MediaSessionManager;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -46,14 +43,19 @@ import org.acra.config.CoreConfigurationBuilder;
 import org.acra.config.DialogConfigurationBuilder;
 import org.acra.config.MailSenderConfigurationBuilder;
 import org.acra.data.StringFormat;
+import org.apache.commons.io.IOUtils;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 import io.github.debutante.adapter.AudioMediaItemConverter;
 import io.github.debutante.helper.DeviceHelper;
@@ -93,6 +95,7 @@ public class Debutante extends Application {
     private CastPlayer castPlayer;
     private CastContext sharedInstance;
     private AudioMediaItemConverter mediaItemConverter;
+    private AtomicReference<MediaSessionWrapper> mediaSessionWrapperHolder = new AtomicReference<>();
 
     public Debutante() {
         super();
@@ -265,6 +268,21 @@ public class Debutante extends Application {
     public void onCreate() {
         super.onCreate();
 
+        File publicDir = new File(getFilesDir(), "public");
+        File emptyMP3 = new File(publicDir, "empty.mp3");
+        if (!emptyMP3.exists()) {
+            L.i("Creating public files");
+            publicDir.mkdirs();
+
+            try (InputStream is = getAssets().open("empty.mp3");
+                 OutputStream os = new FileOutputStream(emptyMP3)) {
+                IOUtils.copy(is, os);
+            } catch (IOException ioe) {
+                L.e("Can't prepare assets", ioe);
+            }
+        } else {
+            L.i("Public files already exist");
+        }
         AppConfig appConfig = getAppConfig(this);
 
         Scheduler scheduler = buildScheduler(this, appConfig);
@@ -341,16 +359,31 @@ public class Debutante extends Application {
         sharedInstance = CastContext.getSharedInstance(this);
         mediaItemConverter = new AudioMediaItemConverter();
         castPlayer = new CastPlayer(sharedInstance, mediaItemConverter);
+    }
 
-        MediaSessionManager manager = (MediaSessionManager) this
-                .getSystemService(Context.MEDIA_SESSION_SERVICE);
-
-        if (manager != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                List<Session2Token> session2Tokens = manager.getSession2Tokens();
-                session2Tokens.forEach(s -> L.i("sessions extra: " + s.getPackageName() + ", " + s.getExtras()));
+    public synchronized MediaSessionCompat getSafeMediaSession() {
+        return mediaSessionWrapperHolder.updateAndGet(w -> {
+            if (w != null) {
+                return w;
             }
-        }
+            L.i("Creating MSC");
+            return new MediaSessionWrapper(new MediaSessionCompat(this, TAG + ".MSC"));
+        }).getMediaSession();
+    }
+
+    public synchronized MediaSessionCompat updateMediaSession(UnaryOperator<MediaSessionWrapper> updateFunction) {
+        getSafeMediaSession();
+        return mediaSessionWrapperHolder.updateAndGet(updateFunction).getMediaSession();
+    }
+
+    public void releaseMediaSession() {
+        mediaSessionWrapperHolder.getAndUpdate(s -> {
+            if (s != null) {
+                L.i("Releasing MSC");
+                s.destroy();
+            }
+            return null;
+        });
     }
 
     public AppConfig appConfig() {
@@ -360,6 +393,48 @@ public class Debutante extends Application {
     public Picasso picasso() {
         synchronized (PICASSO_LOCK) {
             return picasso;
+        }
+    }
+
+    public static class MediaSessionWrapper {
+        private final MediaSessionCompat mediaSession;
+        private boolean withActivityIntent;
+        private boolean registered;
+        private boolean released;
+
+        public MediaSessionWrapper(MediaSessionCompat mediaSession) {
+            this.mediaSession = mediaSession;
+        }
+
+        public MediaSessionCompat getMediaSession() {
+            return mediaSession;
+        }
+
+        public boolean isRegistered() {
+            return registered;
+        }
+
+        public void setRegistered(boolean registered) {
+            this.registered = registered;
+        }
+
+        public boolean isWithActivityIntent() {
+            return withActivityIntent;
+        }
+
+        public void setWithActivityIntent(boolean withActivityIntent) {
+            this.withActivityIntent = withActivityIntent;
+        }
+
+        private void destroy() {
+            setRegistered(false);
+            setWithActivityIntent(false);
+            if (!released) {
+                if (mediaSession != null) {
+                    mediaSession.release();
+                }
+                released = true;
+            }
         }
     }
 }

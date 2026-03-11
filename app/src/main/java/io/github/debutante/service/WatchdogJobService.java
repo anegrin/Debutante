@@ -6,55 +6,61 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import android.os.RemoteException;
 
 import io.github.debutante.helper.L;
 import io.github.debutante.helper.PlayerWrapper;
 
 public class WatchdogJobService extends JobService {
     private PlayerWrapper playerWrapper;
-    private ServiceConnection serviceConnection;
+    private ServiceConnection mediaServiceConnection;
+    private boolean firstTime = true;
 
     @Override
     public void onCreate() {
+        L.i("WatchdogJobService.onCreate");
         super.onCreate();
-        Intent serviceIntent = new Intent(this, MediaService.class).setAction(MediaService.class.getName());
-
-        serviceConnection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                playerWrapper = ((LocalBinder<MediaService>) service).getService().playerWrapper();
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-
-            }
-        };
-
-        bindService(serviceIntent, serviceConnection, BIND_AUTO_CREATE);
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        unbindService(serviceConnection);
     }
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        L.d("Starting watchdog job");
+        L.i("Starting watchdog job");
 
-        boolean isPlaying = playerWrapper != null && playerWrapper.player().isPlaying();
-        if (isPlaying) {
-            jobFinished(params, true);
-            return true;
-        } else {
-            jobFinished(params, false);
-            Intent intent = new Intent(MediaService.ACTION_DEACTIVATE_SESSION);
-            getApplicationContext().sendBroadcast(intent);
-            stopService(new Intent(this, PlayerService.class));
-            return false;
+        if (!firstTime) {
+            Intent serviceIntent = new Intent(this, PlayerService.class).setAction(PlayerService.class.getName());
+
+            mediaServiceConnection = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    try {
+                        service.linkToDeath(() -> mediaServiceConnection = null, 0);
+                    } catch (RemoteException e) {
+                    }
+                    playerWrapper = ((LocalBinder<PlayerService>) service).getService().playerWrapper();
+                    boolean isPlaying = playerWrapper != null && playerWrapper.player().isPlaying();
+                    if (isPlaying) {
+                        L.d("It's playing");
+                    } else {
+                        L.d("It's not playing, let's stop PlayerService");
+                        if (mediaServiceConnection != null) {
+                            unbindService(mediaServiceConnection);
+                            mediaServiceConnection = null;
+                        }
+                        sendBroadcast(new Intent(PlayerService.ACTION_STOP));
+                        stopSelf();
+                    }
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
+
+                }
+            };
+
+            bindService(serviceIntent, mediaServiceConnection, BIND_AUTO_CREATE);
         }
+        firstTime = false;
+        return false;
     }
 
     @Override

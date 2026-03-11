@@ -16,7 +16,7 @@ public class Scheduler {
 
     private static final int SYNC_JOB_ID = 0;
     private static final int WATCHDOG_JOB_ID = 1;
-    private static final Duration WATCHDOG_INTERVAL = Duration.ofMinutes(5);
+    private static final Duration WATCHDOG_INTERVAL = Duration.ofMinutes(15);
     private final Context context;
 
     public Scheduler(Context context) {
@@ -35,10 +35,11 @@ public class Scheduler {
 
             if (jobScheduler.getPendingJob(SYNC_JOB_ID) == null) {
                 L.i("Scheduling account sync job, interval=" + interval);
+                long intervalMs = interval.toMillis();
                 jobScheduler.schedule(new JobInfo.Builder(SYNC_JOB_ID, new ComponentName(context, SyncJobService.class))
                         .setRequiresCharging(false)
-                        .setMinimumLatency(interval.toMillis())
-                        .setBackoffCriteria(interval.toMillis(), JobInfo.BACKOFF_POLICY_LINEAR)
+                        .setPeriodic(intervalMs)
+                        .setBackoffCriteria(intervalMs, JobInfo.BACKOFF_POLICY_LINEAR)
                         .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                         .build()
                 );
@@ -57,7 +58,7 @@ public class Scheduler {
             long intervalMs = WATCHDOG_INTERVAL.toMillis();
             jobScheduler.schedule(new JobInfo.Builder(SYNC_JOB_ID, new ComponentName(context, WatchdogJobService.class))
                     .setRequiresCharging(false)
-                    .setMinimumLatency(intervalMs)
+                    .setPeriodic(intervalMs)
                     .setBackoffCriteria(intervalMs, JobInfo.BACKOFF_POLICY_LINEAR)
                     .build()
             );

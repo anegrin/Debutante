@@ -17,7 +17,7 @@ import io.github.debutante.helper.DeviceHelper;
 import io.github.debutante.helper.L;
 import io.github.debutante.helper.Obj;
 import io.github.debutante.model.AppConfig;
-import io.github.debutante.service.InitService;
+import io.github.debutante.service.A2DPDelegateService;
 
 public class A2DPReceiver extends BroadcastReceiver {
 
@@ -43,9 +43,9 @@ public class A2DPReceiver extends BroadcastReceiver {
                     }
                 }
 
-                final String initAction = play ? InitService.ACTION_PLAY : InitService.ACTION_ACTIVATE_SESSION;
+                final String initAction = play ? A2DPDelegateService.ACTION_PLAY : A2DPDelegateService.ACTION_ACTIVATE_SESSION;
                 new Handler(context.getMainLooper()).postDelayed(() -> {
-                            context.startService(Obj.tap(new Intent(context, InitService.class), i -> i.setAction(initAction)));
+                            context.startService(Obj.tap(new Intent(context, A2DPDelegateService.class), i -> i.setAction(initAction)));
                         },
                         2112);
             }

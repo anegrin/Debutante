@@ -46,4 +46,8 @@ public final class DeviceHelper {
     public static boolean needsStopPlayerButton() {
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.R;
     }
+
+    public static boolean canShareNotificationId() {
+        return Build.VERSION.SDK_INT > Build.VERSION_CODES.VANILLA_ICE_CREAM;
+    }
 }

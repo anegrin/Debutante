@@ -12,10 +12,14 @@ import java.util.Optional;
 import io.github.debutante.helper.L;
 
 public class MediaButtonReceiver extends androidx.media.session.MediaButtonReceiver {
+    public static String EXTRA_FORWARDED = MediaButtonReceiver.class.getName() + "-EXTRA_FORWARDED";
+
     @Override
     public void onReceive(Context context, Intent intent) {
         L.i("MediaButtonReceiver.onReceive " + intent.getAction() + ", extras: " + L.toString(intent.getExtras()));
-        super.onReceive(context, intent);
+        if (!intent.getBooleanExtra(EXTRA_FORWARDED, false)) {
+            super.onReceive(context, intent);
+        }
     }
 
     @Override

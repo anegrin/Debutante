@@ -62,7 +62,7 @@ public abstract class BaseForegroundService extends Service {
                 .setContentText(context.getString(notifictionContentResId))
                 .setSmallIcon(R.drawable.ic_launcher_notification)
                 .setContentIntent(activityIntent
-                        .map(i -> PendingIntent.getActivity(context, MediaDescriptionAdapter.OPEN_ACTIVITY_INTENT_REQUEST_CODE, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
+                        .map(i -> PendingIntent.getActivity(context, MediaDescriptionAdapter.OPEN_ACTIVITY_INTENT_REQUEST_CODE, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE))
                         .orElse(null)
                 )
                 .setProgress(0, 0, progressing)
@@ -138,7 +138,7 @@ public abstract class BaseForegroundService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             L.i("Stopping " + BaseForegroundService.this.getClass().getSimpleName() + " service");
-            doStopSelf();
+                doStopSelf();
         }
     }
 }

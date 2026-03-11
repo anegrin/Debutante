@@ -84,7 +84,7 @@ public class PlayerinoFragment extends BaseFragment {
         requireActivity().registerReceiver(changeMediaItemBroadcastReceiver, new IntentFilter(ChangeMediaItemBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
         requireActivity().registerReceiver(changeIsPlayingBroadcastReceiver, new IntentFilter(ChangeIsPlayingBroadcastReceiver.ACTION), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED);
 
-        final Player player = ((MainActivity) requireActivity()).playerWrapper().player();
+        final Player player = ma().playerWrapper().player();
         MediaItem currentMediaItem = player.getCurrentMediaItem();
         if (currentMediaItem != null) {
             ChangeMediaItemBroadcastReceiver.broadcast(requireActivity(), currentMediaItem.mediaId);

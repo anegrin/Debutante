@@ -94,9 +94,11 @@ public class ExoPlayerListener extends BasePlayerListener {
             player.stop();
         } else {
             boolean stopped = !isPlaying && player.getCurrentMediaItem() == null;
-            playerNotificationManager.setPlayer(stopped ? null : player);
+            if (playerNotificationManager != null) {
+                playerNotificationManager.setPlayer(stopped ? null : player);
+            }
             if (stopped) {
-                context.stopService(new Intent(context, PlayerService.class));
+                context.sendBroadcast(new Intent(PlayerService.ACTION_STOP));
             }
         }
     }
