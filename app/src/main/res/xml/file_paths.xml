@@ -3,4 +3,7 @@
     <files-path
         name="public"
         path="public/" />
+    <cache-path
+        name="coverArt-cache"
+        path="coverArt-cache/" />
 </paths>

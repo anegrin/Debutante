@@ -14,7 +14,9 @@ import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
+import java.io.File;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.github.debutante.MainActivity;
@@ -26,11 +28,13 @@ public class MediaDescriptionAdapter implements PlayerNotificationManager.MediaD
     private final Bitmap songIcon;
     private final Context context;
     private final Supplier<Picasso> picassoSupplier;
+    private final Function<String, File> cachedFileResolver;
 
-    public MediaDescriptionAdapter(Context context, Supplier<Picasso> picassoSupplier) {
+    public MediaDescriptionAdapter(Context context, Supplier<Picasso> picassoSupplier, Function<String, File> cachedFileResolver) {
         songIcon = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_song);
         this.context = context;
         this.picassoSupplier = picassoSupplier;
+        this.cachedFileResolver = cachedFileResolver;
     }
 
     @Override
@@ -62,27 +66,32 @@ public class MediaDescriptionAdapter implements PlayerNotificationManager.MediaD
                     try {
                         if (URIHelper.isRemote(url)) {
 
-                            picassoSupplier.get()
-                                    .load(url)
-                                    //.centerInside()
-                                    .placeholder(R.drawable.ic_song)
-                                    .error(R.drawable.ic_song)
-                                    .into(new Target() {
-                                        @Override
-                                        public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-                                            callback.onBitmap(bitmap);
-                                        }
+                            File cached = cachedFileResolver.apply(url);
+                            if (cached.exists()) {
+                                callback.onBitmap(BitmapFactory.decodeFile(cached.getAbsolutePath()));
+                            } else {
+                                picassoSupplier.get()
+                                        .load(url)
+                                        //.centerInside()
+                                        .placeholder(R.drawable.ic_song)
+                                        .error(R.drawable.ic_song)
+                                        .into(new Target() {
+                                            @Override
+                                            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                                                callback.onBitmap(bitmap);
+                                            }
 
-                                        @Override
-                                        public void onBitmapFailed(Exception e, Drawable errorDrawable) {
-                                            callback.onBitmap(songIcon);
-                                        }
+                                            @Override
+                                            public void onBitmapFailed(Exception e, Drawable errorDrawable) {
+                                                callback.onBitmap(songIcon);
+                                            }
 
-                                        @Override
-                                        public void onPrepareLoad(Drawable placeHolderDrawable) {
+                                            @Override
+                                            public void onPrepareLoad(Drawable placeHolderDrawable) {
 
-                                        }
-                                    });
+                                            }
+                                        });
+                            }
                         } else {
                             callback.onBitmap(songIcon);
                         }

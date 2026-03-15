@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -188,6 +189,14 @@ public class MainActivity extends BaseActivity {
 
     private void doResume() {
 
+        Intent intent = getIntent();
+        if (intent != null && Intent.ACTION_VIEW.equals(intent.getAction())) {
+            Uri data = intent.getData();
+            if (data != null) {
+                toastLoadFailure(new UnsupportedOperationException("Scheme for " + data.getScheme() + "is not supported yet"));
+            }
+        }
+
         NavController.OnDestinationChangedListener destinationChangedListener = new DestinationChangedListener();
 
         mainNavController = Navigation.findNavController(this, R.id.f_nav);
@@ -358,7 +367,7 @@ public class MainActivity extends BaseActivity {
 
                     MediaItem currentMediaItem = playerWrapper.player().getCurrentMediaItem();
 
-                    if (currentMediaItem != null && !URIHelper.isRemote(currentMediaItem.mediaMetadata.extras.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI))) {
+                    if (currentMediaItem != null && currentMediaItem.mediaMetadata.extras != null && !URIHelper.isRemote(currentMediaItem.mediaMetadata.extras.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI))) {
                         local = true;
                     }
 

@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.github.debutante.BuildConfig;
@@ -61,6 +62,7 @@ import io.github.debutante.listeners.MediaSessionNotificationListener;
 import io.github.debutante.persistence.PlayerState;
 import io.github.debutante.receivers.ChangeMediaItemBroadcastReceiver;
 import io.github.debutante.receivers.SyncAccountBroadcastReceiver;
+import okhttp3.Cache;
 import okhttp3.HttpUrl;
 
 public class PlayerService extends MediaBrowserServiceCompat {
@@ -170,48 +172,55 @@ public class PlayerService extends MediaBrowserServiceCompat {
         });
         L.i("Initializing player");
         final ExoPlayer exoPlayer = d().exoPlayer();
+
+        playerWrapper = new PlayerWrapper(this, exoPlayer, d().castPlayer(), d().repository(), d().appConfig());
+        nullSafeMediaMetadataProvider = new NullSafeMediaMetadataProvider(mediaSession);
+        MediaPlaybackPreparer playbackPreparer = new MediaPlaybackPreparer(this, mediaSession, playerWrapper, d().repository());
+
+        castPlayerListener = new CastPlayerListener(this, d().castPlayer(), d().sharedInstance().getPrecacheManager(), d().mediaItemConverter(), playerWrapper);
+        d().castPlayer().addListener(castPlayerListener);
+
+        syncAccountBroadcastReceiver = new SyncAccountBroadcastReceiver(d().okHttpClient(), playerWrapper, d().gson(), d().repository());
+        registerReceiver(syncAccountBroadcastReceiver, Obj.tap(new IntentFilter(), f -> {
+                    f.addAction(SyncAccountBroadcastReceiver.ACTION);
+                    f.addAction(SyncAccountBroadcastReceiver.FORCE_STOP_ACTION);
+                }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
+        );
+
+        Function<String, File> cachedFileResolver = s -> new File(d().cacheDir(), Cache.Companion.key(HttpUrl.get(s)) + ".1");
+        MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
+            MediaQueueNavigator queueNavigator = new MediaQueueNavigator(this, mediaSession, d().appConfig(), cachedFileResolver);
+            m.setQueueNavigator(queueNavigator);
+            m.setQueueEditor(playbackPreparer);
+            m.setPlaybackPreparer(playbackPreparer);
+            m.setMediaMetadataProvider(nullSafeMediaMetadataProvider);
+        });
         onReady = new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
                 L.d("Playback state changed: " + stateToString(playbackState));
-                if (stateIsReady(playbackState) && exoPlayerListener == null) {
-                    synchronized (this) {
-                        MediaSessionCompat registeredMediaSession = d().updateMediaSession(w -> {
-                            if (!w.isWithActivityIntent()) {
-                                L.i("Setting MSC activity");
-                                w.getMediaSession().setSessionActivity(PendingIntent.getActivity(PlayerService.this, 0, new Intent(PlayerService.this, MainActivity.class).putExtra(MainActivity.OPEN_PLAYER_KEY, true), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
-                                w.setWithActivityIntent(true);
-                            }
 
-                            return w;
-                        });
-                        PlayerNotificationManager playerNotificationManager = Obj.tap(new PlayerNotificationManager.Builder(PlayerService.this, Debutante.NOTIFICATION_ID, Debutante.createNotificationChannel(PlayerService.this, Debutante.NOTIFICATION_CHANNEL_ID))
-                                .setMediaDescriptionAdapter(new MediaDescriptionAdapter(PlayerService.this, d()::picasso))
-                                .setNotificationListener(new MediaSessionNotificationListener(PlayerService.this, playerWrapper))
-                                .build(), p -> {
-                            p.setMediaSessionToken(registeredMediaSession.getSessionToken());
-                            p.setUseChronometer(true);
-                            p.setUsePreviousActionInCompactView(true);
-                            p.setUseNextActionInCompactView(true);
-                        });
-                        exoPlayerListener = new ExoPlayerListener(PlayerService.this, exoPlayer, d().downloadManager(), playerNotificationManager, d().appConfig().getSongsToPreload(), playerWrapper);
-                        exoPlayer.addListener(exoPlayerListener);
-                        MediaItem currentMediaItem = exoPlayer.getCurrentMediaItem();
-                        if (currentMediaItem != null && currentMediaItem != EMPTY_MEDIA_ITEM) {
-                            ChangeMediaItemBroadcastReceiver.broadcast(PlayerService.this, currentMediaItem.mediaId);
+                d().updateMediaSession(w -> {
+                    if (stateIsReady(playbackState) && !w.isWithPlayer()) {
+                        synchronized (this) {
+                            L.i("Activating MSC");
+                            mediaSessionConnector.setPlayer(playerWrapper.player());
+                            w.setWithPlayer(true);
+                            w.getMediaSession().setActive(true);
+                            notifyChildrenChanged(getRootId(), new Bundle());
                         }
-                        L.i("Activating MSC");
-                        mediaSession.setActive(true);
-                        notifyChildrenChanged(getRootId(), new Bundle());
+                    } else {
+                        w.getMediaSession().setActive(playbackState != 0);
                     }
-                } else {
-                    mediaSession.setActive(playbackState != 0);
-                }
+
+                    return w;
+                });
             }
 
             private boolean stateIsReady(int playbackState) {
                 switch (playbackState) {
                     case 1:
+                    case 2:
                     case 3:
                         return true;
                     default:
@@ -236,31 +245,34 @@ public class PlayerService extends MediaBrowserServiceCompat {
                 }
             }
         };
-        exoPlayer.addListener(onReady);
+        d().exoPlayer().addListener(onReady);
 
-        playerWrapper = new PlayerWrapper(this, exoPlayer, d().castPlayer(), d().repository(), d().appConfig());
-        nullSafeMediaMetadataProvider = new NullSafeMediaMetadataProvider(mediaSession);
-        MediaPlaybackPreparer playbackPreparer = new MediaPlaybackPreparer(this, mediaSession, playerWrapper, d().repository());
-
-        castPlayerListener = new CastPlayerListener(this, d().castPlayer(), d().sharedInstance().getPrecacheManager(), d().mediaItemConverter(), playerWrapper);
-        d().castPlayer().addListener(castPlayerListener);
-
-        syncAccountBroadcastReceiver = new SyncAccountBroadcastReceiver(d().okHttpClient(), playerWrapper, d().gson(), d().repository());
-        registerReceiver(syncAccountBroadcastReceiver, Obj.tap(new IntentFilter(), f -> {
-                    f.addAction(SyncAccountBroadcastReceiver.ACTION);
-                    f.addAction(SyncAccountBroadcastReceiver.FORCE_STOP_ACTION);
-                }), DeviceHelper.doNotRequireReceiverFlags() ? 0 : RECEIVER_EXPORTED
-        );
-
-        MediaSessionConnector mediaSessionConnector = Obj.tap(new MediaSessionConnector(mediaSession), m -> {
-            m.setPlayer(playerWrapper.player());
-            MediaQueueNavigator queueNavigator = new MediaQueueNavigator(this, mediaSession, d().appConfig(), s -> new File(d().cacheDir(), okhttp3.Cache.Companion.key(HttpUrl.get(s)) + ".1"));
-            m.setQueueNavigator(queueNavigator);
-            m.setQueueEditor(playbackPreparer);
-            m.setPlaybackPreparer(playbackPreparer);
-            m.setMediaMetadataProvider(nullSafeMediaMetadataProvider);
-        });
         d().castPlayer().setSessionAvailabilityListener(new CastSessionAvailabilityListener(this, playerWrapper, mediaSessionConnector, d().appConfig()));
+
+        MediaSessionCompat registeredMediaSession = d().updateMediaSession(w -> {
+            if (!w.isWithActivityIntent()) {
+                L.i("Setting MSC activity");
+                w.getMediaSession().setSessionActivity(PendingIntent.getActivity(PlayerService.this, 0, new Intent(PlayerService.this, MainActivity.class).putExtra(MainActivity.OPEN_PLAYER_KEY, true), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
+                w.setWithActivityIntent(true);
+            }
+
+            return w;
+        });
+        PlayerNotificationManager playerNotificationManager = Obj.tap(new PlayerNotificationManager.Builder(PlayerService.this, Debutante.NOTIFICATION_ID, Debutante.createNotificationChannel(PlayerService.this, Debutante.NOTIFICATION_CHANNEL_ID))
+                .setMediaDescriptionAdapter(new MediaDescriptionAdapter(PlayerService.this, d()::picasso, cachedFileResolver))
+                .setNotificationListener(new MediaSessionNotificationListener(PlayerService.this, playerWrapper))
+                .build(), p -> {
+            p.setMediaSessionToken(registeredMediaSession.getSessionToken());
+            p.setUseChronometer(true);
+            p.setUsePreviousActionInCompactView(true);
+            p.setUseNextActionInCompactView(true);
+        });
+        exoPlayerListener = new ExoPlayerListener(PlayerService.this, exoPlayer, d().downloadManager(), playerNotificationManager, d().appConfig().getSongsToPreload(), playerWrapper);
+        exoPlayer.addListener(exoPlayerListener);
+        MediaItem currentMediaItem = exoPlayer.getCurrentMediaItem();
+        if (currentMediaItem != null && currentMediaItem != EMPTY_MEDIA_ITEM) {
+            ChangeMediaItemBroadcastReceiver.broadcast(PlayerService.this, currentMediaItem.mediaId);
+        }
 
         exoPlayer.setMediaItem(EMPTY_MEDIA_ITEM);
         exoPlayer.setPlayWhenReady(false);

@@ -48,7 +48,7 @@ public class ExoPlayerListener extends BasePlayerListener {
 
             ChangeMediaItemBroadcastReceiver.broadcast(context, mediaItem.mediaId);
 
-            boolean remote = URIHelper.isRemote(mediaItem.mediaMetadata.extras.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI));
+            boolean remote = mediaItem.mediaMetadata.extras != null && URIHelper.isRemote(mediaItem.mediaMetadata.extras.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI));
             CastMenuItemBroadcastReceiver.broadcast(context, remote);
 
             if (remote) {

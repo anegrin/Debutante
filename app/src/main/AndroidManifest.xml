@@ -40,14 +40,14 @@
         android:usesCleartextTraffic="true"
         tools:ignore="MissingIntentFilterForMediaSearch,LockedOrientationActivity">
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="de.cketti.fileprovider.PublicFileProvider"
             android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
+            android:exported="true">
             <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:name="de.cketti.fileprovider.PUBLIC_FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
         <activity
             android:name=".PreferencesActivity"
             android:exported="false"
@@ -61,6 +61,12 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="audio/*" />
             </intent-filter>
         </activity>
         <activity

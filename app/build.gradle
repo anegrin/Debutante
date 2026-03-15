@@ -14,8 +14,8 @@ android {
         applicationId="io.github.debutante"
         minSdk=29
         targetSdk=35
-        versionCode=1_03_01
-        versionName="1.3.1"
+        versionCode=1_03_02
+        versionName="1.3.2"
 
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
 
@@ -85,6 +85,7 @@ dependencies {
     implementation 'com.apachat:swipereveallayout-android:1.1.2'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
     implementation "com.squareup.picasso:picasso:2.8"
+    implementation 'de.cketti.fileprovider:public-fileprovider:1.0.0'
 
     def acra_version = '5.8.4'
     debugImplementation "ch.acra:acra-mail:$acra_version"

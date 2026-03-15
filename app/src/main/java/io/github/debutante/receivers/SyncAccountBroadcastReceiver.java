@@ -379,7 +379,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
 
             String fullURL = SubsonicHelper.buildUrl(accountEntity.url, "rest/getPlaylist", accountEntity.username, accountEntity.token, Collections.singletonMap("id", playlist.remoteUuid));
             GsonRequest<PlaylistResponse> request = new GsonRequest<>(fullURL, PlaylistResponse.class, gson, r -> {
-                if (r.subsonicResponse.isOk()) {
+                if (r.subsonicResponse.isOk() && r.subsonicResponse.playlist.entry != null) {
                     AtomicInteger track = new AtomicInteger(1);
                     List<SongEntity> entities = r.subsonicResponse.playlist.entry.stream().map(s -> EntityHelper.toEntity(accountEntity, artistEntity, playlist, s, track.getAndIncrement())).collect(Collectors.toList());
                     saveEntities(entities, counters.entry, repository::insertAllSongs, () -> {
@@ -387,7 +387,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
                             waitForCompletion(context, artistEntity, counters);
                         }
                     });
-                } else {
+                } else if (r.subsonicResponse.error != null) {
                     toast(context, context.getString(R.string.fetch_albums_failure) + "\n" + context.getString(r.subsonicResponse.error.stringResId()));
                 }
             }, e -> toast(context, context.getString(R.string.fetch_albums_failure) + "\n" + e.getMessage()));

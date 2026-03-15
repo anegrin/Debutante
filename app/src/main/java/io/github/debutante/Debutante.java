@@ -74,6 +74,7 @@ public class Debutante extends Application {
     public static final int MAX_PARALLEL_DOWNLOADS = 2;
     public static final boolean HANDLE_AUDIO_BECOMING_NOISY = true;
     public static final String COVER_ART_CACHE = "coverArt-cache";
+    private static final String DOWNLOAD_CACHE = "download-cache";
 
     private final Object PICASSO_LOCK = new Object();
     private AppConfig appConfig;
@@ -183,7 +184,7 @@ public class Debutante extends Application {
     @NonNull
     private static SimpleCache buildDownloadCache(File cacheDir, StandaloneDatabaseProvider databaseProvider, AppConfig appConfig) {
         return new SimpleCache(
-                cacheDir,
+                new File(cacheDir, DOWNLOAD_CACHE),
                 new DynamicSizeCacheEvictor(appConfig),
                 databaseProvider);
     }
@@ -268,21 +269,7 @@ public class Debutante extends Application {
     public void onCreate() {
         super.onCreate();
 
-        File publicDir = new File(getFilesDir(), "public");
-        File emptyMP3 = new File(publicDir, "empty.mp3");
-        if (!emptyMP3.exists()) {
-            L.i("Creating public files");
-            publicDir.mkdirs();
-
-            try (InputStream is = getAssets().open("empty.mp3");
-                 OutputStream os = new FileOutputStream(emptyMP3)) {
-                IOUtils.copy(is, os);
-            } catch (IOException ioe) {
-                L.e("Can't prepare assets", ioe);
-            }
-        } else {
-            L.i("Public files already exist");
-        }
+        initContents();
         AppConfig appConfig = getAppConfig(this);
 
         Scheduler scheduler = buildScheduler(this, appConfig);
@@ -302,13 +289,15 @@ public class Debutante extends Application {
         listener.accept(appConfig.getCoverArtCacheSize());
 
         appConfig.addOnRefreshListeners(a -> {
-            synchronized (PICASSO_LOCK) {
-                try {
-                    picassoCache.evictAll();
-                } catch (IOException e) {
+            if (picassoCache.maxSize() != a.getCoverArtCacheSize()) {
+                synchronized (PICASSO_LOCK) {
+                    try {
+                        picassoCache.evictAll();
+                    } catch (IOException e) {
+                    }
+                    picasso.shutdown();
+                    listener.accept(a.getCoverArtCacheSize());
                 }
-                picasso.shutdown();
-                listener.accept(a.getCoverArtCacheSize());
             }
         });
 
@@ -361,6 +350,25 @@ public class Debutante extends Application {
         castPlayer = new CastPlayer(sharedInstance, mediaItemConverter);
     }
 
+    private void initContents() {
+        File publicDir = new File(getFilesDir(), "public");
+
+        for (String child : new String[]{"empty.mp3"}) {
+            File emptyMP3 = new File(publicDir, child);
+            if (!emptyMP3.exists()) {
+                L.i("Creating public asset file " + child);
+                publicDir.mkdirs();
+
+                try (InputStream is = getAssets().open(child);
+                     OutputStream os = new FileOutputStream(emptyMP3)) {
+                    IOUtils.copy(is, os);
+                } catch (IOException ioe) {
+                    L.e("Can't prepare assets", ioe);
+                }
+            }
+        }
+    }
+
     public synchronized MediaSessionCompat getSafeMediaSession() {
         return mediaSessionWrapperHolder.updateAndGet(w -> {
             if (w != null) {
@@ -400,6 +408,7 @@ public class Debutante extends Application {
         private final MediaSessionCompat mediaSession;
         private boolean withActivityIntent;
         private boolean registered;
+        private boolean withPlayer;
         private boolean released;
 
         public MediaSessionWrapper(MediaSessionCompat mediaSession) {
@@ -426,9 +435,18 @@ public class Debutante extends Application {
             this.withActivityIntent = withActivityIntent;
         }
 
+        public boolean isWithPlayer() {
+            return withPlayer;
+        }
+
+        public void setWithPlayer(boolean withPlayer) {
+            this.withPlayer = withPlayer;
+        }
+
         private void destroy() {
             setRegistered(false);
             setWithActivityIntent(false);
+            setWithPlayer(false);
             if (!released) {
                 if (mediaSession != null) {
                     mediaSession.release();

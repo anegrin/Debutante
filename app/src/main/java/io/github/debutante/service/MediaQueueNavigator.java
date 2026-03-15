@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -22,6 +23,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.function.Function;
 
+import io.github.debutante.BuildConfig;
+import io.github.debutante.Debutante;
 import io.github.debutante.helper.DeviceHelper;
 import io.github.debutante.helper.L;
 import io.github.debutante.helper.URIHelper;
@@ -65,22 +68,26 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
             }
         }
 
+        Uri cachedIconUri = null;
         if (mediaItem.mediaMetadata.artworkUri != null) {
             String coverArtUrl = mediaItem.mediaMetadata.artworkUri.toString();
             extras.putString(MediaMetadataCompat.METADATA_KEY_ART_URI, coverArtUrl);
             extras.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, coverArtUrl);
-            if (appConfig.isArtOnBTEnabled() && URIHelper.isRemote(coverArtUrl) && isA2DPConnected()) {
-                try {
-                    File cached = cachedFileResolver.apply(coverArtUrl);
-                    if (cached.exists()) {
+            File cached = cachedFileResolver.apply(coverArtUrl);
+            if (cached.exists()) {
+
+                cachedIconUri = Uri.parse("content://" + BuildConfig.APPLICATION_ID + ".fileprovider/"+ Debutante.COVER_ART_CACHE+"/"+cached.getName());
+
+                if (appConfig.isArtOnBTEnabled() && URIHelper.isRemote(coverArtUrl) && isA2DPConnected()) {
+                    try {
                         Bitmap bitmap = BitmapFactory.decodeStream(new FileInputStream(cached));
                         if (bitmap != null) {
                             extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap);
                             extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ART, bitmap);
                         }
+                    } catch (Exception e) {
+                        L.v("Can't load album art", e);
                     }
-                } catch (Exception e) {
-                    L.v("Can't load album art", e);
                 }
             }
         }
@@ -107,7 +114,7 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
                 .setMediaId(mediaItem.mediaId)
                 .setDescription(mediaItem.mediaMetadata.description)
                 .setTitle(mediaItem.mediaMetadata.title)
-                .setIconUri(mediaItem.mediaMetadata.artworkUri)
+                .setIconUri(cachedIconUri)
                 .setExtras(extras)
                 .build();
     }
