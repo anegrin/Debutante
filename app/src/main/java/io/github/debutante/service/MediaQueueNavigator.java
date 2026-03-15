@@ -70,23 +70,29 @@ public class MediaQueueNavigator extends TimelineQueueNavigator {
 
         Uri cachedIconUri = null;
         if (mediaItem.mediaMetadata.artworkUri != null) {
-            String coverArtUrl = mediaItem.mediaMetadata.artworkUri.toString();
-            extras.putString(MediaMetadataCompat.METADATA_KEY_ART_URI, coverArtUrl);
-            extras.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, coverArtUrl);
-            File cached = cachedFileResolver.apply(coverArtUrl);
-            if (cached.exists()) {
+            String coverArtUri = mediaItem.mediaMetadata.artworkUri.toString();
+            extras.putString(MediaMetadataCompat.METADATA_KEY_ART_URI, coverArtUri);
+            extras.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, coverArtUri);
+            if (URIHelper.isRemote(coverArtUri)) {
 
-                cachedIconUri = Uri.parse("content://" + BuildConfig.APPLICATION_ID + ".fileprovider/"+ Debutante.COVER_ART_CACHE+"/"+cached.getName());
+                File cached = cachedFileResolver.apply(coverArtUri);
+                if (cached.exists()) {
 
-                if (appConfig.isArtOnBTEnabled() && URIHelper.isRemote(coverArtUrl) && isA2DPConnected()) {
-                    try {
-                        Bitmap bitmap = BitmapFactory.decodeStream(new FileInputStream(cached));
-                        if (bitmap != null) {
-                            extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap);
-                            extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ART, bitmap);
+                    String contentUri = "content://" + BuildConfig.APPLICATION_ID + ".fileprovider/" + Debutante.COVER_ART_CACHE + "/" + cached.getName();
+                    cachedIconUri = Uri.parse(contentUri);
+                    extras.putString(MediaMetadataCompat.METADATA_KEY_ART_URI, contentUri);
+                    extras.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, contentUri);
+
+                    if (appConfig.isArtOnBTEnabled() && URIHelper.isRemote(coverArtUri) && isA2DPConnected()) {
+                        try {
+                            Bitmap bitmap = BitmapFactory.decodeStream(new FileInputStream(cached));
+                            if (bitmap != null) {
+                                extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap);
+                                extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ART, bitmap);
+                            }
+                        } catch (Exception e) {
+                            L.v("Can't load album art", e);
                         }
-                    } catch (Exception e) {
-                        L.v("Can't load album art", e);
                     }
                 }
             }

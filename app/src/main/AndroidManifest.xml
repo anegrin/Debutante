@@ -10,7 +10,6 @@
     <uses-permission
         android:name="android.permission.FOREGROUND_SERVICE"
         tools:ignore="ForegroundServicesPolicy" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -89,14 +88,6 @@
             </intent-filter>
         </service>
 
-        <!-- receiver
-            android:name=".receivers.MediaButtonReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_BUTTON" />
-            </intent-filter>
-        </receiver -->
-
         <service
             android:name=".service.MediaDownloadService"
             android:exported="false"
@@ -115,7 +106,7 @@
         <service
             android:name=".service.HTTPDService"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
+            android:foregroundServiceType="dataSync" />
         <service
             android:name=".service.SyncService"
             android:exported="false"

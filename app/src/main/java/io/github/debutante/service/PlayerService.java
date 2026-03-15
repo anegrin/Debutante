@@ -207,7 +207,6 @@ public class PlayerService extends MediaBrowserServiceCompat {
                             mediaSessionConnector.setPlayer(playerWrapper.player());
                             w.setWithPlayer(true);
                             w.getMediaSession().setActive(true);
-                            notifyChildrenChanged(getRootId(), new Bundle());
                         }
                     } else {
                         w.getMediaSession().setActive(playbackState != 0);

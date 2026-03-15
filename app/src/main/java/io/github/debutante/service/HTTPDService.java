@@ -1,6 +1,6 @@
 package io.github.debutante.service;
 
-import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION;
+import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC;
 
 import android.content.Context;
 import android.content.Intent;
@@ -69,7 +69,7 @@ public class HTTPDService extends BaseForegroundService {
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     public HTTPDService() {
-        super(R.string.httpd_service_notification_content, NOTIFICATION_ID, FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+        super(R.string.httpd_service_notification_content, NOTIFICATION_ID, FOREGROUND_SERVICE_TYPE_DATA_SYNC);
     }
 
     @Override
