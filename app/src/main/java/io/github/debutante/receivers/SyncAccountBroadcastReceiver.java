@@ -45,7 +45,7 @@ import io.github.debutante.persistence.entities.AlbumEntity;
 import io.github.debutante.persistence.entities.ArtistEntity;
 import io.github.debutante.persistence.entities.BaseEntity;
 import io.github.debutante.persistence.entities.SongEntity;
-import io.github.debutante.service.MediaService;
+import io.github.debutante.service.PlayerService;
 import io.github.debutante.service.SyncService;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Completable;
@@ -379,7 +379,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
 
             String fullURL = SubsonicHelper.buildUrl(accountEntity.url, "rest/getPlaylist", accountEntity.username, accountEntity.token, Collections.singletonMap("id", playlist.remoteUuid));
             GsonRequest<PlaylistResponse> request = new GsonRequest<>(fullURL, PlaylistResponse.class, gson, r -> {
-                if (r.subsonicResponse.isOk()) {
+                if (r.subsonicResponse.isOk() && r.subsonicResponse.playlist.entry != null) {
                     AtomicInteger track = new AtomicInteger(1);
                     List<SongEntity> entities = r.subsonicResponse.playlist.entry.stream().map(s -> EntityHelper.toEntity(accountEntity, artistEntity, playlist, s, track.getAndIncrement())).collect(Collectors.toList());
                     saveEntities(entities, counters.entry, repository::insertAllSongs, () -> {
@@ -387,7 +387,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
                             waitForCompletion(context, artistEntity, counters);
                         }
                     });
-                } else {
+                } else if (r.subsonicResponse.error != null) {
                     toast(context, context.getString(R.string.fetch_albums_failure) + "\n" + context.getString(r.subsonicResponse.error.stringResId()));
                 }
             }, e -> toast(context, context.getString(R.string.fetch_albums_failure) + "\n" + e.getMessage()));
@@ -426,7 +426,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
                         String mediaId = EntityHelper.mediaId(EntityHelper.mediaId(parentEntity), Collections.singletonMap(MediaBrowserHelper.PREPEND_ACTIONS, false));
                         BrowseMediaBroadcastReceiver.broadcast(context, mediaId);
                         context.stopService(new Intent(context, SyncService.class));
-                        MediaService.invalidateSession();
+                        PlayerService.invalidateSession();
                     }, Throwable::printStackTrace);
         }
     }
@@ -435,7 +435,7 @@ public class SyncAccountBroadcastReceiver extends BroadcastReceiver {
         toast(context, context.getString(forceStop.get() ? R.string.fetch_aborted : R.string.fetch_success));
         running.set(false);
         forceStop.set(false);
-        MediaService.invalidateSession();
+        PlayerService.invalidateSession();
     }
 
     private Duration getRandomDelay() {

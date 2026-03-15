@@ -22,7 +22,7 @@ public class MediaSessionNotificationListener implements PlayerNotificationManag
     public void onNotificationCancelled(int notificationId, boolean dismissedByUser) {
         if (notificationId == Debutante.NOTIFICATION_ID && dismissedByUser) {
             if (!playerWrapper.player().isPlaying()) {
-                context.stopService(new Intent(context, PlayerService.class));
+                context.sendBroadcast(new Intent(PlayerService.ACTION_STOP));
             }
         }
     }

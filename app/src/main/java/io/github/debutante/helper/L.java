@@ -64,12 +64,12 @@ public final class L {
         Log.e(TAG, m, t);
     }
 
-    public static String toString(Bundle extras) {
-        return "{" + Optional.ofNullable(extras)
+    public static String toString(Bundle bundle) {
+        return "{" + Optional.ofNullable(bundle)
                 .map(BaseBundle::keySet)
                 .orElse(Collections.emptySet())
                 .stream()
-                .map(k -> k + "=" + extras.get(k))
+                .map(k -> k + "=" + bundle.get(k))
                 .collect(Collectors.joining(", ")) + "}";
     }
 }

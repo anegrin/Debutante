@@ -48,7 +48,7 @@ public class ExoPlayerListener extends BasePlayerListener {
 
             ChangeMediaItemBroadcastReceiver.broadcast(context, mediaItem.mediaId);
 
-            boolean remote = URIHelper.isRemote(mediaItem.mediaMetadata.extras.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI));
+            boolean remote = mediaItem.mediaMetadata.extras != null && URIHelper.isRemote(mediaItem.mediaMetadata.extras.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI));
             CastMenuItemBroadcastReceiver.broadcast(context, remote);
 
             if (remote) {
@@ -94,9 +94,11 @@ public class ExoPlayerListener extends BasePlayerListener {
             player.stop();
         } else {
             boolean stopped = !isPlaying && player.getCurrentMediaItem() == null;
-            playerNotificationManager.setPlayer(stopped ? null : player);
+            if (playerNotificationManager != null) {
+                playerNotificationManager.setPlayer(stopped ? null : player);
+            }
             if (stopped) {
-                context.stopService(new Intent(context, PlayerService.class));
+                context.sendBroadcast(new Intent(PlayerService.ACTION_STOP));
             }
         }
     }

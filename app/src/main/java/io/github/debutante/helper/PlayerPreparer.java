@@ -88,6 +88,18 @@ public class PlayerPreparer {
                         Consumer<? super Throwable> onError,
                         boolean playWhenReady,
                         boolean saveSate) {
+        prepare(parentMediaItem, mediaItems, mediaItemId, startPositionMs, onComplete, onError, playWhenReady, saveSate, false);
+    }
+
+    public void prepare(MediaBrowserCompat.MediaItem parentMediaItem,
+                        List<MediaBrowserCompat.MediaItem> mediaItems,
+                        String mediaItemId,
+                        long startPositionMs,
+                        Action onComplete,
+                        Consumer<? super Throwable> onError,
+                        boolean playWhenReady,
+                        boolean saveSate,
+                        boolean bypassPlayerProxy) {
 
         L.i("preparing player;  parentMediaItem=" + Optional.ofNullable(parentMediaItem).map(MediaBrowserCompat.MediaItem::getMediaId).orElse(null)
                 + ", mediaItems.size=" + CollectionUtils.size(mediaItems)
@@ -153,7 +165,7 @@ public class PlayerPreparer {
 
             final int fWindowIndex = windowIndex;
             mh.post(() -> {
-                Player player = playerWrapper.player();
+                Player player = bypassPlayerProxy ? playerWrapper.activePlayer() : playerWrapper.player();
                 player.setPlayWhenReady(playWhenReady);
                 player.setMediaItems(items, fWindowIndex, startPositionMs);
                 if (player.getAvailableCommands().contains(Player.COMMAND_SET_PLAYLIST_METADATA)) {

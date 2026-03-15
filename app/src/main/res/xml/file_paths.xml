@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files-path
+        name="public"
+        path="public/" />
+    <cache-path
+        name="coverArt-cache"
+        path="coverArt-cache/" />
+</paths>

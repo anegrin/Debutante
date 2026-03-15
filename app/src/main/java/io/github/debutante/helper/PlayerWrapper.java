@@ -204,7 +204,7 @@ public class PlayerWrapper {
                     context.startForegroundService(service);
                     return Void.class;
                 } else if (method.getName().equals("stop") /*|| method.getName().equals("pause")*/) {
-                    context.stopService(new Intent(context, PlayerService.class));
+                    context.sendBroadcast(new Intent(PlayerService.ACTION_STOP));
                     method.invoke(activePlayer, args);
                     return Void.class;
                 } else if (method.getName().equals("setMediaItems")) {

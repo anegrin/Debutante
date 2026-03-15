@@ -62,8 +62,6 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepare(boolean playWhenReady) {
-        mediaSession.setActive(true);
-
         L.i("onPrepare, playWhenReady=" + playWhenReady);
 
         Optional<Pair<MediaBrowserCompat.MediaItem, List<MediaBrowserCompat.MediaItem>>> mediaItems = PlayerState.loadMediaItems(context, Optional.empty());
@@ -91,8 +89,6 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromMediaId(String mediaId, boolean playWhenReady, @Nullable Bundle extras) {
-        mediaSession.setActive(true);
-
         L.i("onPrepareFromMediaId: " + mediaId);
 
         if (mediaId.startsWith(MediaBrowserHelper.PREVIOUS_SESSION_ID)) {
@@ -116,7 +112,6 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromSearch(@NonNull String query, boolean playWhenReady, @Nullable Bundle extras) {
-        mediaSession.setActive(true);
         L.i("onPrepareFromSearch: " + query);
         MediaBrowserHelper.search(context, repository, query, found -> {
             found.stream().findFirst().ifPresent(r -> {
@@ -127,7 +122,6 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public void onPrepareFromUri(@NonNull Uri uri, boolean playWhenReady, @Nullable Bundle extras) {
-        mediaSession.setActive(true);
         L.i("onPrepareFromUri: " + uri);
 
         onPrepareFromMediaId(uri.toString(), playWhenReady, extras);
@@ -135,7 +129,6 @@ public class MediaPlaybackPreparer implements MediaSessionConnector.PlaybackPrep
 
     @Override
     public boolean onCommand(@NonNull Player player, @NonNull String command, @Nullable Bundle extras, @Nullable ResultReceiver cb) {
-        mediaSession.setActive(true);
         L.d("onCommand: " + command);
         return false;
     }

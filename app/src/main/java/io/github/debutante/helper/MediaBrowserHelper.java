@@ -92,14 +92,16 @@ public class MediaBrowserHelper {
             EntityHelper.EntityMetadata metadata = EntityHelper.metadata(id);
 
             RxHelper rxHelper = scheduler != null ? RxHelper.newInstance(scheduler, scheduler) : RxHelper.defaultInstance();
-            if (metadata.type == AccountEntity.class) {
-                rxHelper.subscribe(repository.findAccountByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
-            } else if (metadata.type == ArtistEntity.class) {
-                rxHelper.subscribe(repository.findArtistByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
-            } else if (metadata.type == AlbumEntity.class) {
-                rxHelper.subscribe(repository.findAlbumByUuid(metadata.uuid), a -> result.accept(toMediaItem(context, a, withIcon)), t -> toastLoadFailure(context, t));
-            } else if (metadata.type == SongEntity.class) {
-                rxHelper.subscribe(repository.findSongByUuid(metadata.uuid), s -> result.accept(toMediaItem(context, s, withIcon)), t -> toastLoadFailure(context, t));
+            if (metadata != null) {
+                if (metadata.type == AccountEntity.class) {
+                    rxHelper.subscribe(repository.findAccountByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
+                } else if (metadata.type == ArtistEntity.class) {
+                    rxHelper.subscribe(repository.findArtistByUuid(metadata.uuid), a -> result.accept(toMediaItem(a, withIcon)), t -> toastLoadFailure(context, t));
+                } else if (metadata.type == AlbumEntity.class) {
+                    rxHelper.subscribe(repository.findAlbumByUuid(metadata.uuid), a -> result.accept(toMediaItem(context, a, withIcon)), t -> toastLoadFailure(context, t));
+                } else if (metadata.type == SongEntity.class) {
+                    rxHelper.subscribe(repository.findSongByUuid(metadata.uuid), s -> result.accept(toMediaItem(context, s, withIcon)), t -> toastLoadFailure(context, t));
+                }
             }
         }
     }
