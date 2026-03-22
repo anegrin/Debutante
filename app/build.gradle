@@ -14,8 +14,8 @@ android {
         applicationId="io.github.debutante"
         minSdk=29
         targetSdk=35
-        versionCode=1_03_03
-        versionName="1.3.3"
+        versionCode=1_03_04
+        versionName="1.3.4"
 
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
 
@@ -45,6 +45,7 @@ android {
     }
     buildFeatures {
         viewBinding=true
+        buildConfig=true
     }
     namespace='io.github.debutante'
 }
@@ -110,7 +111,7 @@ dependencies {
     implementation "androidx.room:room-rxjava3:$room_version"
     testImplementation "androidx.room:room-testing:$room_version"
 
-    def nav_version = "2.9.6"
+    def nav_version = "2.9.7"
     implementation "androidx.navigation:navigation-fragment:$nav_version"
     implementation "androidx.navigation:navigation-ui:$nav_version"
     androidTestImplementation "androidx.navigation:navigation-testing:$nav_version"
