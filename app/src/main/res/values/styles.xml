@@ -3,6 +3,18 @@
 
     <style name="Theme.Debutante" parent="BaseTheme">
         <item name="mediaRouteTheme">@style/DebutanteMediaRouterTheme</item>
+        <item name="actionBarStyle">@style/Widget.Debutante.ActionBar</item>
+        <item name="windowActionBarOverlay">true</item>
+    </style>
+
+    <style name="Widget.Debutante.ActionBar" parent="Widget.Material3.ActionBar.Solid">
+        <item name="background">@android:color/transparent</item>
+        <item name="elevation">0dp</item>
+        <item name="subtitleTextStyle">@style/TextAppearance.Debutante.ActionBar.Subtitle</item>
+    </style>
+
+    <style name="TextAppearance.Debutante.ActionBar.Subtitle" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">12sp</item>
     </style>
 
     <style name="DebutanteMediaRouterTheme" parent="Theme.MediaRouter">
@@ -13,4 +25,3 @@
         <item name="mediaRouteButtonTint">?attr/colorPrimary</item>
     </style>
 </resources>
-
