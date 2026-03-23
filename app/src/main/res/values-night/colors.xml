@@ -1,4 +1,8 @@
 <resources>
+    <color name="drawable_fg">?attr/colorPrimary</color>
+    <color name="drawable_bg">?attr/colorPrimaryInverse</color>
+    <color name="launcher_bg">#196B52</color>
+    <color name="launcher_fg">#8AD6B7</color>
     <color name="notification_fg">#FFFFFF</color>
     <color name="md_theme_primary">#8AD6B7</color>
     <color name="md_theme_onPrimary">#003829</color>
