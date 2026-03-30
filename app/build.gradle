@@ -14,8 +14,8 @@ android {
         applicationId="io.github.debutante"
         minSdk=29
         targetSdk=35
-        versionCode=1_04_00
-        versionName="1.4.0"
+        versionCode=1_04_01
+        versionName="1.4.1"
 
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
 

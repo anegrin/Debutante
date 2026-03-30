@@ -40,6 +40,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:defaultNavHost="false"
+            android:background="?attr/colorPrimaryInverse"
             app:navGraph="@navigation/player_nav" />
     </LinearLayout>
 

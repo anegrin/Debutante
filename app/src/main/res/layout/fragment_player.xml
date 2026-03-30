@@ -9,6 +9,7 @@
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:orientation="vertical"
+    android:paddingBottom="@dimen/spacing_medium"
     tools:context=".PlayerFragment">
 
     <RelativeLayout
