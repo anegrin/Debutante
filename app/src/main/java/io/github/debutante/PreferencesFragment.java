@@ -20,6 +20,8 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.SeekBarPreference;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -71,7 +73,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat {
 
         findPreference("clear_caches").setOnPreferenceClickListener(p -> {
 
-            new AlertDialog.Builder(requireContext())
+            new MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.app_name)
                     .setMessage(R.string.clear_caches_confirmation)
                     .setPositiveButton(R.string.yes, (dialog, whichButton) -> MediaDownloadService.sendRemoveAllDownloads(requireContext()))

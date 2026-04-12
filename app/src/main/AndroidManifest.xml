@@ -64,6 +64,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:scheme="content" />
                 <data android:mimeType="audio/*" />
             </intent-filter>
@@ -119,6 +120,14 @@
             android:name=".service.WatchdogJobService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <receiver
+            android:name="androidx.media.session.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".receivers.A2DPReceiver"
