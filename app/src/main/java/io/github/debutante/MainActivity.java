@@ -36,6 +36,7 @@ import androidx.navigation.Navigation;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.gms.cast.framework.CastButtonFactory;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -93,7 +94,7 @@ public class MainActivity extends BaseActivity {
 
         ActivityResultLauncher<String> activityResultLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
             if (!granted) {
-                new AlertDialog.Builder(MainActivity.this)
+                new MaterialAlertDialogBuilder(MainActivity.this)
                         .setTitle(R.string.app_name)
                         .setMessage(String.format(getString(R.string.require_post_notification), getString(R.string.app_name)))
                         .setPositiveButton(android.R.string.ok, null)
