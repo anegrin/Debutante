@@ -18,19 +18,23 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_gravity="center"
-        android:layout_weight="4"
+        android:layout_weight="5"
         android:gravity="center"
         android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/iv_album_art"
+        <io.github.debutante.layout.SquareLayout
+            android:layout_above="@id/tv_artist"
+            android:layout_margin="@dimen/spacing_large"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_above="@id/tv_artist"
-            android:layout_marginStart="@dimen/spacing_medium"
-            android:layout_marginTop="@dimen/spacing_medium"
-            android:layout_marginEnd="@dimen/spacing_medium"
-            android:layout_marginBottom="@dimen/spacing_medium" />
+            android:orientation="horizontal">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/iv_album_art"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:shapeAppearanceOverlay="@style/RoundedAppearance" />
+        </io.github.debutante.layout.SquareLayout>
 
         <TextView
             android:id="@+id/tv_artist"
@@ -63,6 +67,7 @@
             android:layout_centerHorizontal="true"
             android:ellipsize="end"
             android:maxLines="1"
+            android:paddingBottom="@dimen/spacing_small"
             android:textSize="@dimen/text_medium"
             android:textStyle="italic" />
     </RelativeLayout>

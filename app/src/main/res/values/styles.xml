@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <style name="Theme.Debutante" parent="BaseTheme">
@@ -23,5 +22,15 @@
 
     <style name="DebutanteMediaRouteButtonStyle" parent="Widget.MediaRouter.Light.MediaRouteButton">
         <item name="mediaRouteButtonTint">?attr/colorPrimary</item>
+    </style>
+
+    <style name="CircleAppearance">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="RoundedAppearance">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/spacing_large</item>
     </style>
 </resources>

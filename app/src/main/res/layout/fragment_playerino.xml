@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rl_playerino"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="bottom"
-    android:background="?attr/colorPrimaryInverse"
+    android:background="@drawable/bg_playerino"
     android:clickable="true"
     android:orientation="horizontal"
     android:paddingBottom="@dimen/spacing_medium"
@@ -18,18 +19,19 @@
         android:orientation="horizontal"
         tools:context=".PlayerinoFragment">
 
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/iv_album_art"
             android:layout_width="?android:attr/actionBarSize"
             android:layout_height="match_parent"
-            android:layout_alignParentStart="true" />
+            android:layout_alignParentStart="true"
+            android:padding="@dimen/spacing"
+            app:shapeAppearanceOverlay="@style/CircleAppearance" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_alignParentEnd="true"
             android:layout_toEndOf="@id/iv_album_art"
-            android:background="?attr/colorPrimaryInverse"
             android:orientation="horizontal">
 
             <TextView

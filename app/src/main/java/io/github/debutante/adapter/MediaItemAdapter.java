@@ -161,7 +161,8 @@ public class MediaItemAdapter extends RecyclerView.Adapter<MediaItemAdapter.View
                         try {
                             picassoSupplier.get()
                                     .load(coverArtUri)
-                                    //.centerInside()
+                                    .centerCrop()
+                                    .fit()
                                     .placeholder(defaultImage)
                                     .error(defaultImage)
                                     .into(holder.ivArt);
