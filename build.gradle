@@ -10,7 +10,3 @@ buildscript {
         classpath 'com.jaredsburrows:gradle-license-plugin:0.9.3'
     }
 }
-
-task clean(type: Delete) {
-    delete rootProject.buildDir
-}

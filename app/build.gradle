@@ -8,14 +8,14 @@ properties.load(project.rootProject.file("local.properties").newDataInputStream(
 def acraEmail = properties.getOrDefault("acra.email", "none@none.none")
 
 android {
-    compileSdk=35
+    compileSdkVersion(35)
 
     defaultConfig {
         applicationId="io.github.debutante"
         minSdk=29
         targetSdk=35
-        versionCode=1_04_02
-        versionName="1.4.2"
+        versionCode=1_04_04
+        versionName="1.4.4"
 
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
 
@@ -111,27 +111,27 @@ dependencies {
     implementation "androidx.room:room-rxjava3:$room_version"
     testImplementation "androidx.room:room-testing:$room_version"
 
-    def nav_version = "2.9.7"
+    def nav_version = "2.9.8"
     implementation "androidx.navigation:navigation-fragment:$nav_version"
     implementation "androidx.navigation:navigation-ui:$nav_version"
     androidTestImplementation "androidx.navigation:navigation-testing:$nav_version"
 
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.preference:preference:1.2.1'
-    implementation 'androidx.media:media:1.7.1'
+    implementation 'androidx.media:media:1.8.0'
     implementation 'androidx.mediarouter:mediarouter:1.8.1'
     implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'androidx.annotation:annotation:1.9.1'
+    implementation 'androidx.annotation:annotation:1.10.0'
 
-    implementation 'commons-io:commons-io:2.15.1'
-    implementation 'org.apache.commons:commons-lang3:3.14.0'
-    implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'commons-io:commons-io:2.22.0'
+    implementation 'org.apache.commons:commons-lang3:3.20.0'
+    implementation 'org.apache.commons:commons-collections4:4.5.0'
     implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
     implementation 'io.reactivex.rxjava3:rxjava:3.1.12'
-    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.google.code.gson:gson:2.14.0'
 
-    implementation 'com.google.android.gms:play-services-cast-framework:22.3.0'
-    implementation 'com.google.android.material:material:1.13.0'
+    implementation 'com.google.android.gms:play-services-cast-framework:22.3.1'
+    implementation 'com.google.android.material:material:1.14.0'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
