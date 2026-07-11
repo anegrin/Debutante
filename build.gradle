@@ -7,6 +7,6 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:9.2.1'
-        classpath 'com.jaredsburrows:gradle-license-plugin:0.9.8'
+        classpath 'com.jaredsburrows:gradle-license-plugin:0.9.9'
     }
 }

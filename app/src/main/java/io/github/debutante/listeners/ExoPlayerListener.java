@@ -15,23 +15,29 @@ import com.google.android.exoplayer2.offline.DownloadRequest;
 import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 
 import java.io.IOException;
+import java.time.Duration;
 
 import io.github.debutante.helper.EntityHelper;
 import io.github.debutante.helper.L;
 import io.github.debutante.helper.PlayerWrapper;
+import io.github.debutante.helper.RxHelper;
 import io.github.debutante.helper.URIHelper;
 import io.github.debutante.persistence.PlayerState;
 import io.github.debutante.receivers.CastMenuItemBroadcastReceiver;
 import io.github.debutante.receivers.ChangeMediaItemBroadcastReceiver;
 import io.github.debutante.service.MediaDownloadService;
 import io.github.debutante.service.PlayerService;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.disposables.Disposable;
 
 public class ExoPlayerListener extends BasePlayerListener {
 
+    public static final Duration RESUME_DOWNLOADS_DELAY = Duration.ofSeconds(5);
     private final DownloadManager downloadManager;
     private final PlayerNotificationManager playerNotificationManager;
     private final int songsToPreload;
     private final PlayerWrapper playerWrapper;
+    private Disposable resumeDownloadsDisposable;
 
     public ExoPlayerListener(Context context, ExoPlayer exoPlayer, DownloadManager downloadManager, PlayerNotificationManager playerNotificationManager, int songsToPreload, PlayerWrapper playerWrapper) {
         super(context, exoPlayer);
@@ -84,10 +90,16 @@ public class ExoPlayerListener extends BasePlayerListener {
     @Override
     public void onIsPlayingChanged(boolean isPlaying) {
         super.onIsPlayingChanged(isPlaying);
-
+        synchronized (this) {
+            if (resumeDownloadsDisposable != null && !resumeDownloadsDisposable.isDisposed()) {
+                resumeDownloadsDisposable.dispose();
+            }
+        }
         if (isPlaying) {
-            L.d("Resuming downloads");
-            MediaDownloadService.sendResumeDownloads(context);
+            L.i("Resuming downloads");
+            resumeDownloadsDisposable = RxHelper.defaultInstance().subscribe(RESUME_DOWNLOADS_DELAY,
+                    Completable.fromAction(() -> L.d("Scheduling resume downloads")),
+                    () -> MediaDownloadService.sendResumeDownloads(context), Throwable::printStackTrace);
         }
 
         if (isPlaying && playerWrapper.isCasting()) {

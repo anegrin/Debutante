@@ -108,6 +108,8 @@ public class PlayerService extends MediaBrowserServiceCompat {
             return new LocalBinder<>(this);
         }
 
+        startedOnce = false;
+
         return super.onBind(intent);
     }
 
@@ -279,7 +281,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
         L.i("Player initialized");
     }
 
-    private void prepreFromStoredStatus(Player p) {
+    private void prepareFromStoredStatus(Player p) {
         PlayerState.loadMediaItems(this, Optional.empty()).ifPresent(mi -> {
             MediaBrowserCompat.MediaItem parentMediaItem = mi.getLeft();
             List<MediaBrowserCompat.MediaItem> mediaItems = mi.getRight();
@@ -353,7 +355,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
                     p.play();
                 } else {
                     L.d("Player has not items enqueued");
-                    prepreFromStoredStatus(p);
+                    prepareFromStoredStatus(p);
                 }
             } else {
                 startedOnce = true;
@@ -365,7 +367,7 @@ public class PlayerService extends MediaBrowserServiceCompat {
                         p.prepare();
                     } else {
                         L.d("Player has not items enqueued");
-                        prepreFromStoredStatus(p);
+                        prepareFromStoredStatus(p);
                     }
                 }));
             }
