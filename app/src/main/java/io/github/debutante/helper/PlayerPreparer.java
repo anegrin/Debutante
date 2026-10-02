@@ -205,7 +205,7 @@ public class PlayerPreparer {
 
         if (StringUtils.isNotEmpty(duration)) {
             long durationMs = Long.parseLong(duration) * 1000;
-            extras.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs);
+            //extras.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs);
         }
 
 
