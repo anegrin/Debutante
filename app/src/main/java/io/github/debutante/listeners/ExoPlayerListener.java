@@ -15,23 +15,30 @@ import com.google.android.exoplayer2.offline.DownloadRequest;
 import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 
 import java.io.IOException;
+import java.time.Duration;
 
 import io.github.debutante.helper.EntityHelper;
 import io.github.debutante.helper.L;
 import io.github.debutante.helper.PlayerWrapper;
+import io.github.debutante.helper.RxHelper;
 import io.github.debutante.helper.URIHelper;
 import io.github.debutante.persistence.PlayerState;
 import io.github.debutante.receivers.CastMenuItemBroadcastReceiver;
 import io.github.debutante.receivers.ChangeMediaItemBroadcastReceiver;
 import io.github.debutante.service.MediaDownloadService;
 import io.github.debutante.service.PlayerService;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.disposables.Disposable;
 
 public class ExoPlayerListener extends BasePlayerListener {
 
+    public static final Duration DOWNLOAD_OPS_DELAY = Duration.ofSeconds(1);
     private final DownloadManager downloadManager;
     private final PlayerNotificationManager playerNotificationManager;
     private final int songsToPreload;
     private final PlayerWrapper playerWrapper;
+    private Disposable resumeDownloadsDisposable;
+    private Disposable addDownloadsDisposable;
 
     public ExoPlayerListener(Context context, ExoPlayer exoPlayer, DownloadManager downloadManager, PlayerNotificationManager playerNotificationManager, int songsToPreload, PlayerWrapper playerWrapper) {
         super(context, exoPlayer);
@@ -49,45 +56,63 @@ public class ExoPlayerListener extends BasePlayerListener {
             ChangeMediaItemBroadcastReceiver.broadcast(context, mediaItem.mediaId);
 
             boolean remote = mediaItem.mediaMetadata.extras != null && URIHelper.isRemote(mediaItem.mediaMetadata.extras.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI));
-            CastMenuItemBroadcastReceiver.broadcast(context, remote);
+            if (playerWrapper.isCasting()) {
+                CastMenuItemBroadcastReceiver.broadcast(context, remote);
+            }
 
             if (remote) {
                 EntityHelper.EntityMetadata metadata = EntityHelper.metadata(mediaItem.mediaId);
                 PlayerState.persistCurrentMediaItemId(context, metadata.accountUuid, mediaItem.mediaId);
             }
 
-            int currentWindowIndex = player.getCurrentMediaItemIndex();
-            for (int i = 1; i <= songsToPreload; i++) {
-                int nextIndex = currentWindowIndex + i;
-                if (player.getMediaItemCount() > nextIndex) {
-                    MediaItem nextMediaItem = player.getMediaItemAt(nextIndex);
-                    Uri uri = nextMediaItem.localConfiguration.uri;
-                    if (URIHelper.isRemote(uri)) {
-                        try {
-                            Download download = downloadManager.getDownloadIndex().getDownload(uri.toString());
-                            if (download == null) {
-                                DownloadRequest downloadRequest = new DownloadRequest.Builder(uri.toString(), uri).build();
-                                L.i("Requesting download of " + uri);
-                                MediaDownloadService.sendAddDownload(context, downloadRequest);
-                            }
-                        } catch (IOException ioe) {
-                            L.e("Can't check if " + uri + " has been downloaded", ioe);
-                        }
-                    }
+            synchronized (this) {
+                if (addDownloadsDisposable != null && !addDownloadsDisposable.isDisposed()) {
+                    addDownloadsDisposable.dispose();
                 }
             }
 
+            addDownloadsDisposable = RxHelper.defaultInstance().subscribe(DOWNLOAD_OPS_DELAY,
+                    Completable.fromAction(() -> L.i("Scheduling prefetch")),
+                    this::prefetch, Throwable::printStackTrace);
+        }
+    }
 
+    private void prefetch() {
+        int currentWindowIndex = player.getCurrentMediaItemIndex();
+        for (int i = 1; i <= songsToPreload; i++) {
+            int nextIndex = currentWindowIndex + i;
+            if (player.getMediaItemCount() > nextIndex) {
+                MediaItem nextMediaItem = player.getMediaItemAt(nextIndex);
+                Uri uri = nextMediaItem.localConfiguration.uri;
+                if (URIHelper.isRemote(uri)) {
+                    try {
+                        Download download = downloadManager.getDownloadIndex().getDownload(uri.toString());
+                        if (download == null) {
+                            DownloadRequest downloadRequest = new DownloadRequest.Builder(uri.toString(), uri).build();
+                            L.i("Requesting download of " + uri);
+                            MediaDownloadService.sendAddDownload(context, downloadRequest);
+                        }
+                    } catch (IOException ioe) {
+                        L.e("Can't check if " + uri + " has been downloaded", ioe);
+                    }
+                }
+            }
         }
     }
 
     @Override
     public void onIsPlayingChanged(boolean isPlaying) {
         super.onIsPlayingChanged(isPlaying);
-
+        synchronized (this) {
+            if (resumeDownloadsDisposable != null && !resumeDownloadsDisposable.isDisposed()) {
+                resumeDownloadsDisposable.dispose();
+            }
+        }
         if (isPlaying) {
-            L.d("Resuming downloads");
-            MediaDownloadService.sendResumeDownloads(context);
+            L.i("Resuming downloads");
+            resumeDownloadsDisposable = RxHelper.defaultInstance().subscribe(DOWNLOAD_OPS_DELAY,
+                    Completable.fromAction(() -> L.i("Scheduling resume downloads")),
+                    () -> MediaDownloadService.sendResumeDownloads(context), Throwable::printStackTrace);
         }
 
         if (isPlaying && playerWrapper.isCasting()) {

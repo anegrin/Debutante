@@ -112,13 +112,13 @@ public class Debutante extends Application {
         super.attachBaseContext(base);
 
         if (L_D) {
-            CoreConfigurationBuilder builder = new CoreConfigurationBuilder(this);
+            CoreConfigurationBuilder builder = new CoreConfigurationBuilder();
             //core configuration:
             builder
                     .withBuildConfigClass(BuildConfig.class)
                     .withReportFormat(StringFormat.KEY_VALUE_LIST);
             //each plugin you chose above can be configured with its builder like this:
-            builder.getPluginConfigurationBuilder(MailSenderConfigurationBuilder.class)
+            builder.withPluginConfigurations(new MailSenderConfigurationBuilder()
                     //required
                     .withMailTo(BuildConfig.ACRA_EMAIL)
                     //defaults to true
@@ -127,17 +127,17 @@ public class Debutante extends Application {
                     .withReportFileName("Crash.txt")
                     //defaults to "<applicationId> Crash Report"
                     .withSubject("Acra - " + TAG)
-                    .withEnabled(true);
-
-            builder.getPluginConfigurationBuilder(DialogConfigurationBuilder.class)
+                    .withEnabled(true)
+                    .build(),
+            new DialogConfigurationBuilder()
                     //required
                     .withEnabled(true)
-                    //required
-                    .withResText(R.string.app_name)
                     //optional, enables the dialog title
-                    .withResTitle(R.string.app_name)
-                    .withText("Sending to " + BuildConfig.ACRA_EMAIL);
-
+                    .withTitle(getString(R.string.app_name))
+                    //required
+                    .withText("Sending to " + BuildConfig.ACRA_EMAIL)
+                    .build()
+            );
             ACRA.init(this, builder);
         }
     }

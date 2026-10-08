@@ -14,8 +14,8 @@ android {
         applicationId="io.github.debutante"
         minSdk=29
         targetSdk=35
-        versionCode=1_04_04
-        versionName="1.4.4"
+        versionCode=1_05_00
+        versionName="1.5.0"
 
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
 
@@ -57,7 +57,6 @@ licenseReport {
     copyHtmlReportToAssets = false
     copyHtmlReportToAssets = false
     copyJsonReportToAssets = true
-        ignoredPatterns = ["org.apache.commons", "commons-io"]
 }
 
 tasks.preBuild.doFirst { tasks.licenseReleaseReport.licenseReport() }
@@ -66,29 +65,15 @@ tasks.withType(JavaCompile) {
     options.deprecation = true
 }
 
-def kotlin_version = "1.8.22"
-configurations.all {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        def requested = details.requested
-        if (requested.group == 'org.jetbrains.kotlin') {
-            if (requested.name == 'kotlin-stdlib'
-                    || requested.name == 'kotlin-stdlib-jdk7'
-                    || requested.name == 'kotlin-stdlib-jdk8'
-                    || requested.name == 'kotlin-stdlib-common') {
-                details.useVersion kotlin_version
-            }
-        }
-    }
-}
-
 dependencies {
     implementation "io.github.l4digital:fastscroll:2.1.0"
     implementation 'com.apachat:swipereveallayout-android:1.1.2'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
+    //noinspection NewerVersionAvailable
     implementation "com.squareup.picasso:picasso:2.8"
     implementation 'de.cketti.fileprovider:public-fileprovider:1.0.0'
 
-    def acra_version = '5.8.4'
+    def acra_version = '5.14.2'
     debugImplementation "ch.acra:acra-mail:$acra_version"
     debugImplementation "ch.acra:acra-dialog:$acra_version"
     releaseCompileOnly "ch.acra:acra-mail:$acra_version"
@@ -100,32 +85,28 @@ dependencies {
     implementation "com.google.android.exoplayer:extension-cast:$exo_version"
     implementation "com.google.android.exoplayer:extension-mediasession:$exo_version"
     implementation "com.google.android.exoplayer:extension-okhttp:$exo_version"
-    /*debugImplementation files("libs/exoplayer-extension-flac-debug.aar")
-    debugImplementation files("libs/exoplayer-extension-opus-debug.aar")
-    releaseImplementation files("libs/exoplayer-extension-flac-release.aar")
-    releaseImplementation files("libs/exoplayer-extension-opus-release.aar")*/
 
-    def room_version = "2.6.1"
+    def room_version = "2.8.4"
     implementation "androidx.room:room-runtime:$room_version"
     annotationProcessor "androidx.room:room-compiler:$room_version"
     implementation "androidx.room:room-rxjava3:$room_version"
     testImplementation "androidx.room:room-testing:$room_version"
 
-    def nav_version = "2.9.8"
+    def nav_version = "2.10.2"
     implementation "androidx.navigation:navigation-fragment:$nav_version"
     implementation "androidx.navigation:navigation-ui:$nav_version"
     androidTestImplementation "androidx.navigation:navigation-testing:$nav_version"
 
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.2'
     implementation 'androidx.preference:preference:1.2.1'
     implementation 'androidx.media:media:1.8.0'
     implementation 'androidx.mediarouter:mediarouter:1.8.1'
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'androidx.annotation:annotation:1.10.0'
+    implementation 'androidx.appcompat:appcompat:1.8.0'
+    implementation 'androidx.annotation:annotation:1.11.0'
 
     implementation 'commons-io:commons-io:2.22.0'
-    implementation 'org.apache.commons:commons-lang3:3.20.0'
-    implementation 'org.apache.commons:commons-collections4:4.5.0'
+    implementation 'org.apache.commons:commons-lang3:3.21.0'
+    implementation 'org.apache.commons:commons-collections4:4.6.0'
     implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
     implementation 'io.reactivex.rxjava3:rxjava:3.1.12'
     implementation 'com.google.code.gson:gson:2.14.0'
@@ -134,6 +115,6 @@ dependencies {
     implementation 'com.google.android.material:material:1.14.0'
 
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
 }
