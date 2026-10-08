@@ -198,16 +198,9 @@ public class PlayerPreparer {
         String coverArt = itemMetadata.params.get(EntityHelper.EntityMetadata.COVER_ART_PARAM);
         String discNumber = itemMetadata.params.get(EntityHelper.EntityMetadata.DISC_NUMBER_PARAM);
         String track = itemMetadata.params.get(EntityHelper.EntityMetadata.TRACK_PARAM);
-        String duration = itemMetadata.params.get(EntityHelper.EntityMetadata.DURATION_PARAM);
         String album = itemMetadata.params.get(EntityHelper.EntityMetadata.ALBUM_PARAM);
         String artist = itemMetadata.params.get(EntityHelper.EntityMetadata.ARTIST_PARAM);
         String year = itemMetadata.params.get(EntityHelper.EntityMetadata.YEAR_PARAM);
-
-        if (StringUtils.isNotEmpty(duration)) {
-            long durationMs = Long.parseLong(duration) * 1000;
-            //extras.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs);
-        }
-
 
         if (StringUtils.isNotBlank(coverArt)) {
             builder.setArtworkUri(Uri.parse(SubsonicHelper.buildCoverArtUrl(accountEntity.url,
