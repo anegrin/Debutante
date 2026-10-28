@@ -7,8 +7,10 @@ import android.support.v4.media.MediaMetadataCompat;
 
 import androidx.annotation.Nullable;
 
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
+import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.offline.Download;
 import com.google.android.exoplayer2.offline.DownloadManager;
 import com.google.android.exoplayer2.offline.DownloadRequest;
@@ -95,6 +97,25 @@ public class ExoPlayerListener extends BasePlayerListener {
                     } catch (IOException ioe) {
                         L.e("Can't check if " + uri + " has been downloaded", ioe);
                     }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onPlaybackStateChanged(int playbackState) {
+        if (playbackState == Player.STATE_BUFFERING) {
+            Player activePlayer = playerWrapper.activePlayer();
+            long contentDuration = activePlayer.getContentDuration();
+            long currentPosition = activePlayer.getCurrentPosition();
+
+            if (contentDuration != C.TIME_UNSET && currentPosition != C.TIME_UNSET && contentDuration - currentPosition < 1000) {
+                if (activePlayer.hasNextMediaItem()) {
+                    L.i("Workaround for android auto loop, jumping to next");
+                    activePlayer.next();
+                } else {
+                    L.i("Workaround for android auto loop, stoping");
+                    activePlayer.stop();
                 }
             }
         }

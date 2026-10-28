@@ -8,14 +8,14 @@ properties.load(project.rootProject.file("local.properties").newDataInputStream(
 def acraEmail = properties.getOrDefault("acra.email", "none@none.none")
 
 android {
-    compileSdkVersion(35)
+    compileSdkVersion(37)
 
     defaultConfig {
         applicationId="io.github.debutante"
         minSdk=29
         targetSdk=35
-        versionCode=1_05_00
-        versionName="1.5.0"
+        versionCode=1_05_01
+        versionName="1.5.1"
 
         testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
 
@@ -86,7 +86,8 @@ dependencies {
     implementation "com.google.android.exoplayer:extension-mediasession:$exo_version"
     implementation "com.google.android.exoplayer:extension-okhttp:$exo_version"
 
-    def room_version = "2.8.4"
+    annotationProcessor "org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.21"
+    def room_version = "2.8.5"
     implementation "androidx.room:room-runtime:$room_version"
     annotationProcessor "androidx.room:room-compiler:$room_version"
     implementation "androidx.room:room-rxjava3:$room_version"
@@ -109,9 +110,9 @@ dependencies {
     implementation 'org.apache.commons:commons-collections4:4.6.0'
     implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
     implementation 'io.reactivex.rxjava3:rxjava:3.1.12'
-    implementation 'com.google.code.gson:gson:2.14.0'
+    implementation 'com.google.code.gson:gson:2.15.0'
 
-    implementation 'com.google.android.gms:play-services-cast-framework:22.3.1'
+    implementation 'com.google.android.gms:play-services-cast-framework:23.0.0'
     implementation 'com.google.android.material:material:1.14.0'
 
     testImplementation 'junit:junit:4.13.2'
