@@ -65,6 +65,11 @@ tasks.withType(JavaCompile) {
     options.deprecation = true
 }
 
+// CVE-2026-102554: force a patched Guava for any transitive resolution
+configurations.all {
+    resolutionStrategy.force "com.google.guava:guava:33.7.2-android"
+}
+
 dependencies {
     implementation "io.github.l4digital:fastscroll:2.1.0"
     implementation 'com.apachat:swipereveallayout-android:1.1.2'
